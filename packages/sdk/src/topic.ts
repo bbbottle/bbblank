@@ -1,3 +1,4 @@
+import { Schema } from "effect";
 /**
  * 事件 Topic —— 设计文档 §3.3
  *
@@ -7,4 +8,11 @@
  * - `Topic<T> = { key: string; schema: Schema.Codec<T> }`
  * - `defineTopic<S extends Schema.Top>(key, schema): Topic<S['Type']>`
  */
-export {};
+export interface Topic<T> {
+  readonly key: string;
+  readonly schema: Schema.Decoder<T>;
+}
+export const defineTopic = <T>(
+  key: string,
+  schema: Schema.Decoder<T>,
+): Topic<T> => ({ key, schema });

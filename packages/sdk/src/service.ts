@@ -1,3 +1,4 @@
+import { Schema } from "effect";
 /**
  * 插件间服务 Token —— 设计文档 §3.3
  *
@@ -8,4 +9,10 @@
  * - `ServiceToken<T> = { key: string; [ServiceTypeId]?: (_: T) => T }`
  * - `defineService<T>(key)`
  */
-export {};
+declare const ServiceTypeId: unique symbol;
+
+export interface ServiceToken<T> {
+  readonly key: string;
+  readonly [ServiceTypeId]?: (_: T) => T;
+}
+export const defineService = <T>(key: string): ServiceToken<T> => ({ key });
