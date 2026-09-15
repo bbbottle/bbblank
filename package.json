@@ -1,0 +1,17 @@
+{
+  "name": "bbblank",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@11.24.0",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r --if-present test"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
+}
