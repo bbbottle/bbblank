@@ -1,16 +1,8 @@
-import { AnyCapability, CapabilityRecord, Cleanup } from "./capability.js";
-import { PluginManifest } from "./manifest.js";
-import { ServiceToken } from "./service.js";
-import { Topic } from "./topic.js";
-import { Layer } from "effect";
-
 /**
  * 插件契约 —— 设计文档 §3.2 / §3.4
  * 普通插件：Promise + Cleanup 薄契约（作者不必学 Effect）。
  * Effect 插件：Layer 的 R 通道被 manifest 声明的能力集合封顶。
  */
-<<<<<<< HEAD
-=======
 import type { Layer, Scope } from 'effect';
 import type {
   AnyCapability,
@@ -25,7 +17,6 @@ import type { ServiceToken } from './service.js';
 import type { Topic } from './topic.js';
 
 export type { Cleanup } from './capability.js';
->>>>>>> 439e5ed0047a57aee2d667b2aed6184834693bcb
 
 export interface PluginAPI<Caps extends ReadonlyArray<AnyCapability>> {
   readonly manifest: PluginManifest;
@@ -48,41 +39,20 @@ export interface PluginAPI<Caps extends ReadonlyArray<AnyCapability>> {
 export interface PluginModule<
   Caps extends ReadonlyArray<AnyCapability> = ReadonlyArray<AnyCapability>,
 > {
-<<<<<<< HEAD
-  readonly kind: "plain";
-  readonly manifest: Omit<PluginManifest, "capabilities">;
-  readonly capabilities: Caps;
-  readonly setup: (
-    api: PluginAPI<Caps>,
-  ) => void | Cleanup | Promise<void | Cleanup>;
-=======
   readonly kind: 'plain';
   readonly manifest: Omit<PluginManifest, 'capabilities'>;
   readonly capabilities: Caps;
   readonly setup: (api: PluginAPI<Caps>) => void | Cleanup | Promise<void | Cleanup>;
->>>>>>> 439e5ed0047a57aee2d667b2aed6184834693bcb
   readonly onManualInstall?: (api: PluginAPI<Caps>) => void | Promise<void>;
 }
 
 export const definePlugin = <const Caps extends ReadonlyArray<AnyCapability>>(
-<<<<<<< HEAD
-  m: Omit<PluginModule<Caps>, "kind">,
-): PluginModule<Caps> => ({ kind: "plain", ...m });
-
-export interface EffectPluginModule<
-  Caps extends ReadonlyArray<AnyCapability>,
-  ROut,
-> {
-  readonly kind: "effect";
-  readonly manifest: Omit<PluginManifest, "capabilities">;
-=======
   m: Omit<PluginModule<Caps>, 'kind'>
 ): PluginModule<Caps> => ({ kind: 'plain', ...m });
 
 export interface EffectPluginModule<Caps extends ReadonlyArray<AnyCapability>, ROut> {
   readonly kind: 'effect';
   readonly manifest: Omit<PluginManifest, 'capabilities'>;
->>>>>>> 439e5ed0047a57aee2d667b2aed6184834693bcb
   readonly capabilities: Caps;
   /** R 只能是所声明 Capability 的 Identifier 与内核服务，超出即编译错误 */
   readonly layer: Layer.Layer<
@@ -92,14 +62,6 @@ export interface EffectPluginModule<Caps extends ReadonlyArray<AnyCapability>, R
   >;
 }
 
-<<<<<<< HEAD
-export const defineEffectPlugin = <
-  const Caps extends ReadonlyArray<AnyCapability>,
-  ROut,
->(
-  m: Omit<EffectPluginModule<Caps, ROut>, "kind">,
-): EffectPluginModule<Caps, ROut> => ({ kind: "effect", ...m });
-=======
 export const defineEffectPlugin = <const Caps extends ReadonlyArray<AnyCapability>, ROut>(
   m: Omit<EffectPluginModule<Caps, ROut>, 'kind'>
 ): EffectPluginModule<Caps, ROut> => ({ kind: 'effect', ...m });
@@ -111,4 +73,3 @@ export const defineEffectPlugin = <const Caps extends ReadonlyArray<AnyCapabilit
 export type AnyPluginModule =
   | PluginModule<any>
   | EffectPluginModule<any, any>;
->>>>>>> 439e5ed0047a57aee2d667b2aed6184834693bcb
