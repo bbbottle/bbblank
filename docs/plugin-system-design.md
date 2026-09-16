@@ -190,9 +190,10 @@ export const defineService = <T>(key: string): ServiceToken<T> => ({ key });
 
 export interface Topic<T> {
   readonly key: string;
-  readonly schema: Schema.Codec<T>;
+  // Decoder<T>：只保留解码视图；DecodingServices=never 才能用 decodeUnknownSync
+  readonly schema: Schema.Decoder<T>;
 }
-export const defineTopic = <S extends Schema.Top>(key: string, schema: S): Topic<S['Type']> => ({
+export const defineTopic = <T>(key: string, schema: Schema.Decoder<T>): Topic<T> => ({
   key,
   schema,
 });
@@ -232,6 +233,25 @@ export const defineEffectPlugin = <const Caps extends ReadonlyArray<AnyCapabilit
 
 这是强类型的关键收益点：**Layer 的 `R` 通道被 manifest 声明的能力集合封顶**。忘记声明 `Router` 却 `yield* RouterCapability.tag`，`tsc` 直接报错，而不是运行时缺服务。
 
+`KernelServices` 与 `PluginSetupError` 都必须声明在 **sdk**——它们出现在插件契约的类型面上，放 kernel 会造成 sdk→kernel 的循环依赖：
+
+```ts
+// sdk：插件 setup/layer 可抛出的契约错误（kernel 的 PluginError 联合包含它）
+export class PluginSetupError extends Data.TaggedError('PluginSetupError')<{
+  id: PluginID;
+  cause: unknown;
+}> {}
+
+// sdk：插件可依赖的内核服务 Tag（Shape 即契约；实现见 kernel §4.3）
+export class ServiceRegistry extends Context.Service<ServiceRegistry, ServiceRegistryShape>()(
+  '@kernel/ServiceRegistry'
+) {}
+export class EventHub extends Context.Service<EventHub, EventHubShape>()('@kernel/EventHub') {}
+export type KernelServices = ServiceRegistry | EventHub;
+```
+
+原则：**Tag/错误出现在插件可见类型上 = 契约，归 sdk；实现归 kernel**。PermissionPolicy/InstallStore/PluginLoader/CapabilityBroker/PluginRegistry 这类内核内部服务仍留在 kernel。
+
 ---
 
 ## 4. 内核服务（`@kernel/core`）
@@ -252,10 +272,7 @@ export class ManifestInvalid extends Data.TaggedError('ManifestInvalid')<{
   id: string;
   issue: string;
 }> {}
-export class PluginSetupError extends Data.TaggedError('PluginSetupError')<{
-  id: PluginID;
-  cause: unknown;
-}> {}
+// PluginSetupError 定义在 sdk（见 §3.4）：它是插件可抛出的契约错误
 export class PermissionDenied extends Data.TaggedError('PermissionDenied')<{
   id: PluginID;
   required: PluginPerm;
@@ -280,7 +297,7 @@ export type PluginError =
   | PluginNotFound
   | PluginLoadError
   | ManifestInvalid
-  | PluginSetupError
+  | PluginSetupError // 来自 sdk
   | PermissionDenied
   | CapabilityMissing
   | DependencyMissing
@@ -348,7 +365,7 @@ export class CapabilityBroker extends Context.Service<CapabilityBroker, Capabili
 
 ### 4.3 `ServiceRegistry`、`EventHub`、`PermissionPolicy`
 
-与 v2 相同（`Ref` + `Deferred` 的等待式 `get`；`PubSub` + `forkScoped` 的订阅；策略式权限），仅两处变化：
+前两个的 **Tag 已在 sdk 声明**（§3.4），kernel 只提供实现；`PermissionPolicy` 是内核内部服务，Tag 直接定义在 kernel。实现要点与 v2 相同（`Ref` + `Deferred` 的等待式 `get`；`PubSub` + `forkScoped` 的订阅；策略式权限），仅两处变化：
 
 - `EventHub.publish` 增加 `Topic<T>` 参数并在 dev 模式做 Schema 校验；
 - `ServiceRegistry.register` 记录 `pluginId`，供 devtools 归属查询。
@@ -440,8 +457,9 @@ export interface KernelView {
   readonly uninstall: (id: PluginID) => Promise<void>;
 }
 
+// KernelEnv：runtime 内全部服务环境（内核内部服务 + KernelServices + 宿主 Capability），定义在 kernel
 export const makeKernelView = (
-  rt: ManagedRuntime.ManagedRuntime<KernelServices, never>
+  rt: ManagedRuntime.ManagedRuntime<KernelEnv, never>
 ): KernelView => {
   const reg = rt.runSync(Effect.service(PluginRegistry));
   return {
