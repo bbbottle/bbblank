@@ -6,6 +6,7 @@
 import { Context } from 'effect';
 import type { Effect, Stream } from 'effect';
 import type { Cleanup } from './capability.js';
+import type { EventPayloadInvalid } from './errors.js';
 import type { PluginID } from './manifest.js';
 import type { ServiceToken } from './service.js';
 import type { Topic } from './topic.js';
@@ -29,7 +30,8 @@ export class ServiceRegistry extends Context.Service<ServiceRegistry, ServiceReg
 ) {}
 
 export interface EventHubShape {
-  readonly publish: <T>(topic: Topic<T>, payload: T) => Effect.Effect<void>;
+  /** Schema 校验（缺省开启）失败即 EventPayloadInvalid；满载时按宿主配置的背压策略处理 */
+  readonly publish: <T>(topic: Topic<T>, payload: T) => Effect.Effect<void, EventPayloadInvalid>;
   readonly subscribe: <T>(topic: Topic<T>) => Stream.Stream<T>;
 }
 

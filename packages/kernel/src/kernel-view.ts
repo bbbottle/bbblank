@@ -7,8 +7,10 @@ import { Effect, Fiber, ManagedRuntime, Stream, SubscriptionRef } from 'effect';
 import type { PluginID } from '@bbblank/sdk';
 import type { EventHub, ServiceRegistry } from '@bbblank/sdk';
 import { PluginRegistry } from './plugin-registry.js';
-import type { RegistrySnapshot } from './plugin-registry.js';
+import type { Diagnostics, KernelOptions, RegistrySnapshot } from './plugin-registry.js';
+import type { AuditLog } from './audit-log.js';
 import type { CapabilityBroker } from './capability-broker.js';
+import type { EventBus } from './event-hub.js';
 import type { PermissionPolicy } from './permission-policy.js';
 import type { PluginLoader } from './plugin-loader.js';
 import type { InstallStore } from './install-store.js';
@@ -19,17 +21,25 @@ export type KernelEnv =
   | CapabilityBroker
   | ServiceRegistry
   | EventHub
+  | EventBus
   | PermissionPolicy
   | PluginLoader
-  | InstallStore;
+  | InstallStore
+  | AuditLog
+  | KernelOptions;
 
 export interface KernelView {
   readonly snapshot: () => RegistrySnapshot;
   readonly subscribe: (cb: () => void) => () => void;
   readonly enable: (id: PluginID) => Promise<void>;
   readonly disable: (id: PluginID) => Promise<void>;
-  readonly install: (id: PluginID) => Promise<void>;
+  readonly install: (id: PluginID, opts?: { readonly config?: unknown }) => Promise<void>;
   readonly uninstall: (id: PluginID) => Promise<void>;
+  readonly reconfigure: (id: PluginID, config: unknown) => Promise<void>;
+  /** 宿主把平台级未捕获异常归因到插件后上报（§10.2） */
+  readonly reportFault: (id: PluginID, cause: unknown) => void;
+  /** 可 JSON.stringify 的诊断导出（§10.9） */
+  readonly diagnostics: () => Promise<Diagnostics>;
 }
 
 export const makeKernelView = (
@@ -48,7 +58,11 @@ export const makeKernelView = (
     },
     enable: id => rt.runPromise(reg.enable(id)),
     disable: id => rt.runPromise(reg.disable(id)),
-    install: id => rt.runPromise(reg.install(id, { manual: true })),
+    install: (id, opts) =>
+      rt.runPromise(reg.install(id, { manual: true, ...(opts?.config === undefined ? {} : { config: opts.config }) })),
     uninstall: id => rt.runPromise(reg.uninstall(id)),
+    reconfigure: (id, config) => rt.runPromise(reg.reconfigure(id, config)),
+    reportFault: reg.reportFault,
+    diagnostics: () => rt.runPromise(reg.diagnostics),
   };
 };

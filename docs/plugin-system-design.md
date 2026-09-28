@@ -1,6 +1,6 @@
 # 宿主无关插件内核技术方案（Effect 4 / TypeScript）
 
-> 版本：v3
+> 版本：v4（在 v3 基础上加入 §10 生产级强化：并发/停机、故障隔离、版本约束、制品安全、细粒度权限、事件背压、插件配置、持久化与恢复、可观测性）
 > 前置：`effect@4.0.0-rc.x`、TypeScript 5.x（`strict`、`exactOptionalPropertyTypes`）
 > 定位：为"空白 HTML 微内核博客"等任意宿主提供同一套插件内核；本文只描述内核与契约，DOM 宿主作为附录中的一个实例。
 
@@ -60,8 +60,9 @@ export const SemVer = Schema.String.pipe(
 );
 export type SemVer = typeof SemVer.Type;
 
-export const PluginPerm = Schema.Literals(['guest', 'admin']);
-export type PluginPerm = typeof PluginPerm.Type;
+// v4：二值 guest/admin 已由按 capability/service 的授权取代（§10.5）
+export const AccessLevel = Schema.Literals(['read', 'write']);
+export type AccessLevel = typeof AccessLevel.Type;
 ```
 
 原则：**任何会跨越动态 `import()`、`postMessage`、网络的类型，都先写 Schema，再 `typeof X.Type` 导出类型**。不允许手写 interface 后再补校验。
@@ -124,17 +125,28 @@ export type CapabilityRecord<Caps extends ReadonlyArray<AnyCapability>> = {
 ### 3.1 Manifest（Schema 定义）
 
 ```ts
+export const MANIFEST_SCHEMA_VERSION = 2;
+export const Dependency = Schema.Struct({ id: PluginID, range: VersionRange }); // range: "^1.2.0" / ">=1 <2" / "*"
+export const AccessLevel = Schema.Literals(['read', 'write']);
+
 export const PluginManifest = Schema.Struct({
+  schemaVersion: Schema.Literal(MANIFEST_SCHEMA_VERSION), // 结构演进的迁移锚点（§10.3）
   id: PluginID,
   name: Schema.String,
   version: SemVer,
-  perm: Schema.optionalKey(PluginPerm), // 缺省 "guest"
-  dependencies: Schema.optionalKey(Schema.Array(PluginID)),
+  sdkVersion: Schema.optionalKey(SemVer), // 插件编译时的 sdk 版本，definePlugin 自动写入（§10.3）
+  dependencies: Schema.optionalKey(Schema.Array(Dependency)),
   /** 运行时校验用；类型级信息在 definePlugin 的泛型里 */
   capabilities: Schema.Array(Schema.String),
+  /** 每个 capability 申请的访问级别，缺省 "write"（§10.5） */
+  access: Schema.optionalKey(Schema.Record(Schema.String, AccessLevel)),
+  /** 允许提供（register）的服务 key，"*" 表示任意（§10.5） */
+  services: Schema.optionalKey(Schema.Struct({ provide: Schema.optionalKey(Schema.Array(Schema.String)) })),
 });
 export type PluginManifest = typeof PluginManifest.Type;
 ```
+
+v3 的 `perm: 'guest' | 'admin'` 与 `dependencies: PluginID[]` 由 schemaVersion 1 → 2 的迁移函数转换（见 §10.3），不再出现在当前 Schema 中。
 
 ### 3.2 `PluginModule<Caps>`
 
@@ -161,11 +173,15 @@ export interface PluginAPI<Caps extends ReadonlyArray<AnyCapability>> {
 
 export interface PluginModule<
   Caps extends ReadonlyArray<AnyCapability> = ReadonlyArray<AnyCapability>,
+  C = void,
 > {
   readonly kind: 'plain';
-  readonly manifest: Omit<PluginManifest, 'capabilities'>;
+  readonly manifest: ManifestInput<Caps>; // 作者手写部分；schemaVersion/sdkVersion/capabilities 由 definePlugin 合成
   readonly capabilities: Caps;
-  readonly setup: (api: PluginAPI<Caps>) => void | Cleanup | Promise<void | Cleanup>;
+  /** typed config（§10.7）：宿主提供的原始配置经此解码后作为 setup 第二参 */
+  readonly configSchema?: Schema.Decoder<C>;
+  readonly defaultConfig?: unknown;
+  readonly setup: (api: PluginAPI<Caps>, config: C) => void | Cleanup | Promise<void | Cleanup>;
   readonly onManualInstall?: (api: PluginAPI<Caps>) => void | Promise<void>;
 }
 
@@ -214,17 +230,21 @@ export const Theme = defineService<ThemeService>('theme');
 ### 3.4 Effect 形态插件
 
 ```ts
-export interface EffectPluginModule<Caps extends ReadonlyArray<AnyCapability>, ROut> {
+export interface EffectPluginModule<Caps extends ReadonlyArray<AnyCapability>, ROut, C = void> {
   readonly kind: 'effect';
-  readonly manifest: Omit<PluginManifest, 'capabilities'>;
+  readonly manifest: ManifestInput<Caps>;
   readonly capabilities: Caps;
-  /** R 只能是所声明 Capability 的 Identifier 与内核服务，超出即编译错误 */
-  readonly layer: Layer.Layer<
-    ROut,
-    PluginSetupError,
-    IdOf<Caps[number]> | KernelServices | Scope.Scope
-  >;
+  readonly configSchema?: Schema.Decoder<C>;
+  readonly defaultConfig?: unknown;
+  /** R 只能是所声明 Capability 的 Identifier 与内核服务，超出即编译错误；
+   *  需要配置时写成 `(config: C) => Layer`（§10.7） */
+  readonly layer: PluginLayer<Caps, ROut> | ((config: C) => PluginLayer<Caps, ROut>);
 }
+type PluginLayer<Caps, ROut> = Layer.Layer<
+  ROut,
+  PluginSetupError,
+  IdOf<Caps[number]> | KernelServices | Scope.Scope
+>;
 
 export const defineEffectPlugin = <const Caps extends ReadonlyArray<AnyCapability>, ROut>(
   m: Omit<EffectPluginModule<Caps, ROut>, 'kind'>
@@ -273,9 +293,11 @@ export class ManifestInvalid extends Data.TaggedError('ManifestInvalid')<{
   issue: string;
 }> {}
 // PluginSetupError 定义在 sdk（见 §3.4）：它是插件可抛出的契约错误
+// PermissionDenied 移入 sdk（插件调用 facade/services 时可见）；required 形如
+// "capability:dom:write" / "service:provide:theme"（§10.5）
 export class PermissionDenied extends Data.TaggedError('PermissionDenied')<{
   id: PluginID;
-  required: PluginPerm;
+  required: string;
 }> {}
 export class CapabilityMissing extends Data.TaggedError('CapabilityMissing')<{
   id: PluginID;
@@ -293,16 +315,30 @@ export class DependentsActive extends Data.TaggedError('DependentsActive')<{
   dependents: ReadonlyArray<PluginID>;
 }> {}
 
+// v4 新增（§10）
+export class DependencyVersionMismatch extends Data.TaggedError('DependencyVersionMismatch')<{
+  id: PluginID; dependency: PluginID; range: string; actual: string;
+}> {}
+export class SdkIncompatible extends Data.TaggedError('SdkIncompatible')<{
+  id: PluginID; required: string; actual: string;
+}> {}
+export class ConfigInvalid extends Data.TaggedError('ConfigInvalid')<{ id: PluginID; issue: string }> {}
+// sdk 侧新增的契约错误：StorageError（Storage capability）、EventPayloadInvalid（emit 校验失败，同步抛给发布方）
+
 export type PluginError =
   | PluginNotFound
   | PluginLoadError
   | ManifestInvalid
   | PluginSetupError // 来自 sdk
-  | PermissionDenied
+  | PermissionDenied // 来自 sdk
   | CapabilityMissing
   | DependencyMissing
+  | DependencyVersionMismatch
   | DependencyCycle
-  | DependentsActive;
+  | DependentsActive
+  | SdkIncompatible
+  | ConfigInvalid
+  | StorageError; // 来自 sdk
 ```
 
 ### 4.2 `CapabilityBroker`
@@ -383,16 +419,27 @@ export class PluginLoader extends Context.Service<PluginLoader, PluginLoaderShap
   '@kernel/PluginLoader'
 ) {}
 
+/** 期望态（desired state）：宿主希望哪些插件被安装/启用、以何配置 */
+export const InstallRecord = Schema.Struct({
+  id: PluginID,
+  enabled: Schema.Boolean,
+  config: Schema.optionalKey(Schema.Unknown), // 原始（未解码）配置
+});
 export interface InstallStoreShape {
-  readonly read: Effect.Effect<ReadonlySet<PluginID>>;
-  readonly write: (ids: ReadonlySet<PluginID>) => Effect.Effect<void>;
+  readonly list: Effect.Effect<ReadonlyArray<InstallRecord>, StorageError>;
+  readonly put: (rec: InstallRecord) => Effect.Effect<void, StorageError>;
+  readonly remove: (id: PluginID) => Effect.Effect<void, StorageError>;
 }
 export class InstallStore extends Context.Service<InstallStore, InstallStoreShape>()(
   '@kernel/InstallStore'
-) {}
+) {
+  static readonly memory: (initial?: Iterable<PluginID | InstallRecord>) => Layer.Layer<InstallStore>;
+  /** durable：任何 KeyValueStore（宿主提供 localStorage/IndexedDB/fs 适配）+ Schema JSON 编解码 */
+  static readonly fromKeyValue: Layer.Layer<InstallStore, never, KeyValueStore>;
+}
 ```
 
-内核对 `load` 的返回做 `Schema.decodeUnknownEffect(PluginManifest)`，失败即 `ManifestInvalid`。这是动态边界的第一道校验。内核**不提供**任何默认实现（没有 `localStorage`，没有 `import.meta.glob`）——它们属于宿主。
+内核对 `load` 的返回先做 manifest 迁移（§10.3），再 `Schema.decodeUnknownEffect(PluginManifest)`，失败即 `ManifestInvalid`。这是动态边界的第一道校验。内核**不提供**任何平台实现（没有 `localStorage`，没有 `import.meta.glob`）——它们属于宿主；内核只提供与平台无关的 `memory` 与"基于抽象 `KeyValueStore`"的组合实现。
 
 ### 4.5 `PluginRegistry`
 
@@ -439,7 +486,9 @@ const activate = (rec: PluginRecord) =>
   });
 ```
 
-`makeFacadeContext` 即 v2 §7 中的 `scoped` / `run` / `runSync` 三件套，基于 `Effect.runSyncWith(ctx)` / `Effect.runPromiseWith(ctx)` 与 `Scope.fork(scope)`。
+`makeFacadeContext` 即 v2 §7 中的 `scoped` / `run` / `runSync` 三件套，基于 `Effect.runSyncWith(ctx)` / `Effect.runPromiseWith(ctx)` 与 `Scope.fork(scope)`。v4 在 FacadeContext 上追加 `access`、`require`、`audit`、`guard`、`onUninstall`（§10.2 / §10.5 / §10.8）。
+
+> 上面的代码是 v3 形态的示意。v4 的实际激活流程在其外层增加：每插件读写锁（§10.1）、版本与 sdk 兼容校验（§10.3）、config 解码（§10.7）、权限解析与审计（§10.5）、span/日志注解（§10.9）；插件 Scope 不再 fork 自 registry 的 Scope，而是独立创建并由有序停机统一关闭（§10.1）。
 
 ---
 
@@ -482,6 +531,8 @@ export const makeKernelView = (
 
 `subscribe`/`snapshot` 恰好是 `useSyncExternalStore` 的签名，也适配 Lit `@lit/task`、Svelte store、或纯 DOM 的手动刷新。
 
+v4 追加：`reconfigure(id, rawConfig)`（§10.7）、`reportFault(id, cause)`（宿主把 `window.onerror` 等平台级未捕获异常归因后上报，§10.2）、`diagnostics()`（可 `JSON.stringify` 的诊断导出，§10.9）。`PluginRecord` 增加 `lastError`、`restarts` 字段，`status` 扩展为 `starting | enabled | stopping | disabled | failed | quarantined`。
+
 ---
 
 ## 6. 组装（宿主职责）
@@ -515,6 +566,17 @@ export const createKernel = <const Caps extends ReadonlyArray<AnyCapability>>(
 ```
 
 类型约束：`capabilityLayer` 的输出必须覆盖 `capabilities` 中每个 def 的 `Identifier`，少给一个是编译错误——宿主与插件都被同一套类型钳住。
+
+v4 的 `KernelConfig` 追加可选项（全部有生产可用的默认值）：
+
+```ts
+readonly supervision?: Partial<SupervisionPolicy>; // §10.2 重启/熔断
+readonly events?: Partial<EventHubOptions>;        // §10.6 容量/策略/校验
+readonly timeouts?: { setup?: Duration.Input; stop?: Duration.Input; load?: Duration.Input };
+readonly audit?: Layer.Layer<AuditLog>;            // §10.5 缺省为内存环形缓冲 + 结构化日志
+```
+
+`dispose()` 先执行有序停机（§10.1）再释放 runtime。`bootstrap()` 不再因单个插件失败而 reject，而是返回 `BootstrapReport`。
 
 ---
 
@@ -553,6 +615,200 @@ export const createKernel = <const Caps extends ReadonlyArray<AnyCapability>>(
 | 手写 `PluginManifest` interface               | Schema 共源，动态边界解码                      |
 | 事件为固定 `PluginEvents` 映射                | `Topic<T>` 可由插件自行定义并跨插件共享        |
 | 内置 `localStorage` / `import.meta.glob` 实现 | 内核零默认实现，全部宿主提供                   |
+
+---
+
+## 10. 生产级强化（v4）
+
+本章是 v4 的主体。每一节先给**决策**，再给**不变量**（测试据此编写）。
+
+### 10.1 并发与生命周期状态机
+
+**状态机**
+
+```
+            install/enable                 setup ok
+ (absent) ───────────────▶ starting ──────────────────▶ enabled
+                               │ setup/校验失败              │ disable        │ 运行期故障
+                               ▼                            ▼                ▼
+                            failed ◀──────────────── stopping ◀──── 监管器（§10.2）
+                               │ 重启预算耗尽                 │
+                               ▼                            ▼
+                          quarantined                   disabled
+```
+
+- `starting` / `stopping` 是对外可见的中间态，KernelView 订阅者能看到进行中的迁移。
+- `failed` 携带 `lastError: { tag, message }`（可序列化）；`quarantined` 只能由显式 `enable` 解除，并清零重启计数。
+
+**互斥：每插件读写锁（`Semaphore` 实现）**
+
+每个插件一个 `Semaphore.makeUnsafe(MAX)`：独占 = 取 `MAX` 个许可，共享 = 取 1 个。
+
+| 操作                         | 锁                                      |
+| ---------------------------- | --------------------------------------- |
+| `install(A)` / `enable(A)`   | A 独占 + A 的每个依赖共享               |
+| `disable(A)` / `uninstall(A)`| A 独占                                  |
+| 级联重启/隔离 `A`            | A 及其所有传递依赖者独占                |
+| 停机                         | 按层逐个独占                            |
+
+- 多把锁**按 PluginID 字典序获取**，杜绝死锁。
+- 不变量 1：同一插件任意时刻至多一个生命周期操作在执行——并发 `enable(A)` 只会构建一次 Scope，第二个调用观察到 `enabled` 后直接返回。
+- 不变量 2：`enable(B)` 持有依赖 A 的共享锁，`disable(A)` 需要 A 的独占锁，因此"B 检查 A 已启用"与"A 被停用"不可能交错；`disable(A)` 看到的依赖者集合是准确的。
+- 兄弟插件（共享同一依赖）之间只竞争共享锁，bootstrap 同层仍可并行。
+- 生命周期操作内部调用的是"已持锁"版本，Semaphore 不可重入，公开 API 永远只在最外层取锁。
+
+**有序停机（reverse-Kahn）**
+
+- 插件 Scope 由 `Scope.make()` 独立创建（不再 fork 自 registry 的 layer scope），因为 fork 的子 Scope 会按创建逆序关闭，与依赖拓扑无关。
+- registry layer 注册一个 finalizer：对所有 `enabled` 插件求 Kahn 分层，**逆序**逐层关闭（层内并行）；依赖者先关，被依赖者最后关。每个插件关闭有 `timeouts.stop`（默认 5s）上限，超时记日志并继续。
+- `dispose()` = 有序停机 + `runtime.dispose()`；停机期间监管器不再发起重启。
+
+**bootstrap 半失败语义**
+
+1. 读取 InstallStore 中全部记录；并行加载所有模块（`enabled: false` 的也加载以展示 manifest）。加载/解码失败 → 该插件记 `failed`，不阻断其他插件。
+2. 对 `enabled: true` 集合做 Kahn 分层；成环的节点记 `failed(DependencyCycle)`，其余照常。
+3. 按层激活，层内并行。任一插件失败 → 记 `failed`；其依赖者在自己的 `enable` 前置检查中得到 `DependencyMissing` / `DependencyVersionMismatch`，同样记 `failed`，**不回滚**同层已成功的插件。
+4. **store 不被 bootstrap 改写**：store 是期望态，snapshot 是实际态；二者不一致即"需要关注"，下次启动会重试。这就是启动 reconcile 的收敛规则：期望 enabled 而激活失败 → 实际态收敛为 `failed`，绝不悬空在 `starting`。
+5. 返回 `BootstrapReport { enabled: PluginID[]; failed: Array<{ id; error }> }`，bootstrap 本身不失败（除非 store 读取失败）。
+
+### 10.2 故障隔离与监管
+
+**捕获面**：插件代码在内核之外被调用的每个入口都经过 `guard`，异常被归因到插件并投递给监管器，而不是逃逸到宿主调用方的栈上。
+
+| 入口                                   | 处理                                                                                         |
+| -------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `events.on` 回调                       | 同步 throw / 返回 rejected Promise → 归因订阅者，订阅继续存活                                |
+| 插件注册的服务（`services.register`）  | impl 被包成 Proxy：方法 throw/reject → 归因**提供者**；调用方仍收到原错误（它必须知道失败）|
+| `FacadeContext.scoped` 中的 fiber      | 非中断的失败/defect → 归因该插件                                                             |
+| 交给 capability 的插件回调             | capability 实现用 `ctx.guard(cb)` 包装（例如 `dom.mount(slot, ctx.guard(render))`）          |
+| 平台级未捕获异常                       | 宿主（如 `window.onerror`/`unhandledrejection`）自行归因后调用 `KernelView.reportFault`      |
+
+Effect 插件自己 fork 的 fiber 不在监管范围内（Effect 作者应使用 `Effect.forkScoped` 并自行处理错误）；其 layer 构建失败仍走 `PluginSetupError`。
+
+**监管器**：registry layer 内一个常驻 fiber，从 `Queue.unbounded<Fault>` 取故障（投递是同步 `offerUnsafe`，可以在任意回调里调用），串行处理：
+
+1. 插件不在 `enabled` → 仅记录日志（例如 disable 之后的迟到回调）。
+2. 级联停止：先按逆拓扑停止它的传递依赖者，再停止它本身，状态记 `failed`（`lastError` = 故障原因）。
+3. 在滑动窗口 `window`（默认 60s）内计数；超过 `maxRestarts`（默认 3）→ **熔断**：状态记 `quarantined`，被停止的依赖者记 `failed(DependencyMissing)`，不再自动重启。
+4. 否则等待指数退避 `min(initial * factor^(n-1), max)`（默认 100ms × 2ⁿ，上限 5s），期间若用户手动改变了该插件状态则放弃；随后重新 `enable`，成功后按拓扑序恢复被级联停止的依赖者；重启失败计入同一预算并回到第 3 步。
+
+```ts
+export interface SupervisionPolicy {
+  readonly maxRestarts: number;          // 0 = 故障即 failed，不重启
+  readonly window: Duration.Input;
+  readonly backoff: { readonly initial: Duration.Input; readonly max: Duration.Input; readonly factor: number };
+}
+```
+
+### 10.3 版本与兼容性
+
+**依赖版本约束**：`dependencies: Array<{ id, range }>`。range 语法是 npm semver 的子集，由 sdk 内置的零依赖实现解析：`*`、`1.2.3`（精确）、`^1.2.3`、`~1.2.3`、`>=`/`>`/`<=`/`<`，空格连接表示"且"，`||` 表示"或"。预发布标签参与比较但不做 npm 的"同 tuple 才匹配预发布"特例。`enable` 前置检查：依赖必须 `enabled` 且 `satisfies(dep.version, range)`，否则 `DependencyVersionMismatch`。
+
+**manifest schemaVersion**：
+- 当前为 2。内核持有迁移链 `migrations: { [from: number]: (raw) => raw }`，加载时从 manifest 声明的版本（缺省视为 1）逐步迁移到当前版本，再做 Schema 解码。
+- 1 → 2：`dependencies: string[]` → `{ id, range: '*' }`；`perm: 'admin'` → `services.provide: ['*']`，`perm` 删除。
+- 高于内核所知版本的 manifest → `ManifestInvalid`（旧内核无法理解新插件，必须明确拒绝）。
+
+**sdk 兼容窗口**：
+- sdk 导出 `SDK_VERSION`，`definePlugin` / `defineEffectPlugin` 自动把它写入 `manifest.sdkVersion`。内核运行时用它自己链接的 `SDK_VERSION` 做检查：
+  - `1.x` 及以后：主版本相同，且插件的次版本 ≤ 内核的次版本（内核向后兼容同主版本内更早的插件）。
+  - `0.x`：主、次版本都必须相同（0.x 期间次版本即破坏性版本）。
+  - 缺失 `sdkVersion`（手写的旧插件）：放行并记 warning 日志。
+- 不满足 → `SdkIncompatible`，插件不会被激活。
+- sdk 的发布约定：只增不改的契约变更（新增可选字段、新增 capability）递增次版本；删除/重命名/改变语义递增主版本并提供 manifest 迁移。
+
+### 10.4 加载与制品安全
+
+- 内核对 `PluginLoader.load` 统一加超时（`timeouts.load`，默认 10s），超时 → `PluginLoadError`；并额外校验返回值的结构（`kind` + `setup`/`layer`），不合格 → `ManifestInvalid`。
+- 生产加载器在宿主层实现（DOM 宿主：`EsmPluginLoader`）：
+  1. **白名单**：插件 URL 必须来自 `allowOrigins`（按 `URL.origin` 精确比较），否则拒绝。
+  2. **大小限制**：先按 `Content-Length`，再按实际读取的字节数，超过 `maxBytes`（默认 1 MiB）拒绝。
+  3. **完整性**：catalog 中每项携带 SRI（`sha256-…`/`sha384-…`/`sha512-…`），用 `crypto.subtle.digest` 校验读取到的字节；缺失 SRI 视为拒绝（可显式 `requireIntegrity: false` 关闭，仅用于开发）。
+  4. **执行**：校验过的字节构造为 Blob URL 再 `import()`——确保执行的正是被校验的字节，而不是二次请求的结果；模块必须 `export default` 一个插件模块。
+  5. 超时由 `AbortController` 实施，同时受内核的 `timeouts.load` 兜底。
+- **制品约定**：单文件 ESM（外部依赖全部打包，`@bbblank/sdk` 除类型外不得被打包两份——sdk 运行时部分只有 `definePlugin` 等纯函数，重复打包无害但会使 `SDK_VERSION` 以插件构建时为准，这恰好是兼容性检查需要的）；产物名带内容哈希；sourcemap 单独发布、不内联；catalog（`id → { url, integrity, manifest? }`）作为发布清单与制品一起签发，版本锁以 catalog 为准。
+
+### 10.5 权限模型
+
+- manifest 按资源声明所需权限：`access: { [capabilityId]: 'read' | 'write' }`（缺省 `write`），`services.provide: string[]`（缺省不能提供任何服务）。
+- `PermissionPolicy` 是宿主策略点，决定**有效授权** = manifest 申请 ∩ 宿主上限：
+
+```ts
+export interface PermissionPolicyShape {
+  readonly check: (m: PluginManifest) => Effect.Effect<void, PermissionDenied>;     // 激活闸门
+  readonly access: (m: PluginManifest, capability: string) => AccessLevel | undefined; // undefined = 拒绝
+  readonly canProvide: (m: PluginManifest, serviceKey: string) => boolean;
+}
+PermissionPolicy.permissive                     // 信任 manifest 申请
+PermissionPolicy.restrict(limitsFor)            // 宿主按插件给出上限，取交集
+```
+
+- 激活时每个声明的 capability 都解析出有效级别；被拒绝 → `PermissionDenied(capability:<id>)`，插件不会激活。
+- 有效级别传给 facade 投影：`FacadeContext.access`；capability 作者在写方法里调用 `ctx.require('write')`，不足则抛 `PermissionDenied(capability:<id>:write)` 并写审计。能力作者也可以直接按 `ctx.access` 返回裁剪后的 facade。
+- **审计**：`AuditLog` 服务（缺省：内存环形缓冲 500 条 + 结构化日志）。记录：激活时的授权结果、服务注册（允许/拒绝）、`ctx.require` 拒绝、capability 作者显式调用的 `ctx.audit(action, target)`（用于标记特权操作）。审计条目进入诊断导出。
+
+### 10.6 事件总线背压
+
+- 每个订阅者一个独立的有界队列（缺省容量 1024），慢消费者只影响自己。
+- 满时策略（`EventHubOptions.strategy`）：
+  - `dropping`（**缺省**）：丢弃新消息；
+  - `sliding`：丢弃最旧消息；
+  - `suspend`：发布方等待。插件侧 `emit` 是同步 API，因此在 `suspend` 下以 fork 方式发布（fire-and-forget）。
+- 被丢弃的消息写入死信环形缓冲（缺省 100 条：`{ topic, subscriber, reason, at }`，不保留 payload 以免泄露/占内存），并计入 `bbblank_events_dropped` 指标。
+- Schema 校验由 `events.validate` 控制，**缺省开启**（生产也开启：用校验成本换数据可信）；校验失败的 `emit` 抛 `EventPayloadInvalid` 给发布方。
+
+### 10.7 插件配置
+
+- `configSchema: Schema.Decoder<C>` + `defaultConfig`（编码形态）。原始配置来源优先级：`InstallStore` 记录中的 `config` > `defaultConfig` > `{}`。
+- 解码失败 → `ConfigInvalid`，插件不激活。解码后的值作为 `setup(api, config)` 第二参；Effect 插件把 `layer` 写成 `(config) => Layer`。
+- `reconfigure(id, raw)`：先解码（失败即返回 `ConfigInvalid`，不做任何改变）→ 落盘 → 若插件已启用则**级联重启**（与 §10.2 相同的停止/恢复顺序，但不计入故障预算）。没有"热更新"语义：配置变化 = 重启该插件的 Scope，插件不需要写配置 diff 逻辑。
+
+### 10.8 持久化与崩溃恢复
+
+- `InstallStore` 记录期望态 `{ id, enabled, config }`，以 `list/put/remove` 细粒度操作表达，便于 durable 实现原子写单条记录。
+- 写入时机：`install` 成功后 `put(enabled: true)`；`enable` 成功后 / `disable` 后 `put`；`reconfigure` 解码成功后 `put`；`uninstall` 后 `remove`。失败的 `install` 不落盘。
+- durable 实现：内核提供抽象 `KeyValueStore`（`get/set/remove/keys(prefix)`，字符串值）与 `InstallStore.fromKeyValue`（每条记录一个 key，Schema JSON 编解码，损坏记录跳过并记日志）；宿主提供 `KeyValueStore` 的平台实现（DOM：`localStorage`）。
+- **插件私有持久状态**：sdk 定义 `Storage` capability（`get/set/remove/keys/clear`，按 pluginId 命名空间隔离，读方法需 `read`、写方法需 `write`）；内核提供基于 `KeyValueStore` 的 `PluginStorageLive`。facade 通过 `ctx.onUninstall` 注册"卸载时清空该插件命名空间"，保证 uninstall 不留垃圾。
+- 启动 reconcile 见 §10.1。
+
+### 10.9 可观测性
+
+- **Tracing**：`plugin.install` / `plugin.enable` / `plugin.disable` / `plugin.activate` / `plugin.restart` span，属性含 `plugin.id`、`plugin.version`；失败时 span 状态即失败原因。宿主通过替换 Effect 的 Tracer 接入 OTel。
+- **日志**：内核所有针对单个插件的日志经 `Effect.annotateLogs({ pluginId })`；FacadeContext 的 `run/runSync` 也在该注解下运行，capability 实现的日志自动带 `pluginId`。
+- **指标**（Effect `Metric`，宿主可导出）：
+  - `bbblank_plugin_transitions_total{plugin, status}`
+  - `bbblank_plugin_activate_duration`（timer，`plugin`）
+  - `bbblank_plugin_faults_total{plugin}`
+  - `bbblank_events_published_total{topic}` / `bbblank_events_dropped_total{topic}`
+- **诊断导出**：`KernelView.diagnostics()` 返回纯 JSON 对象（无 Map/函数/循环引用），可直接挂到健康检查端点：
+
+```ts
+export interface Diagnostics {
+  readonly at: number;
+  readonly healthy: boolean; // 没有 failed/quarantined
+  readonly plugins: ReadonlyArray<{
+    id; name; version; kind; status; restarts; lastError?; dependencies; services: string[];
+  }>;
+  readonly events: { published: number; dropped: number; deadLetters: ReadonlyArray<DeadLetter> };
+  readonly audit: ReadonlyArray<AuditEntry>;
+}
+```
+
+### 10.10 与 v3 的差异
+
+| v3                                       | v4                                                         |
+| ---------------------------------------- | ---------------------------------------------------------- |
+| Registry 操作无互斥                      | 每插件读写锁 + 字典序多锁                                  |
+| 插件 Scope fork 自 layer scope           | 独立 Scope + reverse-Kahn 有序停机                         |
+| bootstrap 任一失败即整体失败             | 逐插件 `failed`，返回 `BootstrapReport`                    |
+| 运行期异常逃逸到宿主                     | guard 归因 + 监管器重启 + 熔断隔离                         |
+| `dependencies: PluginID[]`               | `{ id, range }` + `DependencyVersionMismatch`              |
+| manifest 无版本                          | `schemaVersion` + 迁移链；`sdkVersion` + 兼容窗口检查      |
+| `perm: guest/admin`                      | 按 capability 的 `read/write` + 按服务 key 的 provide + 审计 |
+| `PubSub.unbounded`                       | 每订阅者有界队列 + 策略 + 死信；校验缺省开启                |
+| 无插件配置                               | `configSchema` + `setup(api, config)` + `reconfigure`       |
+| `InstallStore` 只存 ID 集合              | 期望态记录 + durable `fromKeyValue` + 插件 `Storage` 能力   |
+| 无可观测性                               | span / 注解日志 / 指标 / JSON 诊断导出                     |
 
 ---
 

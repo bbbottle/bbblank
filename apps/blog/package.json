@@ -13,9 +13,13 @@
     "@bbblank/host-dom": "workspace:*",
     "@bbblank/kernel": "workspace:*",
     "@bbblank/sdk": "workspace:*",
-    "effect": "4.0.0-rc.112"
+    "effect": "4.0.0-rc.112",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "typescript": "7.0.2",
     "vite": "^8.2.2"
   }

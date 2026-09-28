@@ -12,10 +12,10 @@ import { CapabilityMissing } from './errors.js';
 
 export interface CapabilityBrokerShape {
   readonly has: (id: string) => boolean;
-  /** 为某插件构建 caps 记录：只包含其声明且宿主提供的能力 */
+  /** 为某插件构建 caps 记录：只包含其声明且宿主提供的能力；ctxFor 按 capability 给出 FacadeContext（授权级别不同） */
   readonly facadesFor: (
     manifest: PluginManifest,
-    ctx: FacadeContext
+    ctxFor: (capability: string) => FacadeContext
   ) => Effect.Effect<Record<string, unknown>, CapabilityMissing>;
   /** Effect 插件用：把声明的能力 Context 子集提取出来（unknown：异构服务联合） */
   readonly contextFor: (
@@ -45,11 +45,11 @@ export class CapabilityBroker extends Context.Service<CapabilityBroker, Capabili
           return Option.isSome(shape) ? { def, shape: shape.value } : undefined;
         };
 
-        const facadesFor: CapabilityBrokerShape['facadesFor'] = (manifest, fctx) =>
+        const facadesFor: CapabilityBrokerShape['facadesFor'] = (manifest, ctxFor) =>
           Effect.forEach(manifest.capabilities, id => {
             const found = lookup(id);
             return found
-              ? Effect.succeed([id, found.def.facade(found.shape, fctx)] as const)
+              ? Effect.succeed([id, found.def.facade(found.shape, ctxFor(id))] as const)
               : Effect.fail(new CapabilityMissing({ id: manifest.id, capability: id }));
           }).pipe(Effect.map(entries => Object.fromEntries(entries)));
 

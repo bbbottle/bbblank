@@ -3,7 +3,7 @@
  */
 import { Context } from 'effect';
 import type { Effect, Scope } from 'effect';
-import type { PluginID } from './manifest.js';
+import type { AccessLevel, PluginID } from './manifest.js';
 
 export type Cleanup = () => void | Promise<void>;
 
@@ -21,6 +21,18 @@ export interface FacadeContext {
   readonly scoped: (eff: Effect.Effect<void, never, Scope.Scope>) => Cleanup;
   readonly run: <A, E>(eff: Effect.Effect<A, E>) => Promise<A>;
   readonly runSync: <A, E>(eff: Effect.Effect<A, E>) => A;
+  /** 该插件对本 capability 的有效授权（manifest 申请 ∩ 宿主策略，§10.5） */
+  readonly access: AccessLevel;
+  /** 授权不足时抛 PermissionDenied 并写审计；写方法开头调用 */
+  readonly require: (level: AccessLevel) => void;
+  /** 标记一次特权操作进入审计日志 */
+  readonly audit: (action: string, target?: string) => void;
+  /** 包装插件交给宿主的回调：throw / rejected Promise 被吞掉（返回 undefined），归因到该插件并交给监管器（§10.2） */
+  readonly guard: <Args extends ReadonlyArray<unknown>, R>(
+    fn: (...args: Args) => R
+  ) => (...args: Args) => R | undefined;
+  /** 注册卸载时的数据清理（如清空该插件的存储命名空间，§10.8） */
+  readonly onUninstall: (eff: Effect.Effect<void, unknown>) => void;
 }
 
 export const defineCapability = <Id extends string, Shape, Facade>(
