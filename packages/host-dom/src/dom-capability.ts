@@ -3,32 +3,42 @@
  * DOM 只是宿主注入的一种 Capability，不属于内核。
  *
  * 分区挂载：插件只拿到自己的 host 元素（`<div data-plugin data-slot>`），不碰裸 document。
- * slot 表由插件（通常是 shell）定义；先 mount 后定义 slot 的挂载会挂起，slot 出现时再渲染，
+ * slot 是 Effect Brand 品牌字符串（`defineSlot(key)`），裸字符串不能赋给它：由提供 slot 的插件导出，挂载方 import 使用，
+ * 拼错名字是编译错误而不是静默挂起。
+ * slot 由插件（通常是 shell）提供；先 mount 后提供 slot 的挂载会挂起，slot 出现时再渲染，
  * slot 撤销（shell 停用）时卸载、重新定义时再挂回——插件启用顺序因此无关紧要。
- * 宿主预置 `root` slot（缺省 document.body）。
+ * 宿主预置 `RootSlot`（缺省 document.body）。
  * 实现只依赖传入的 Document，浏览器与 happy-dom/linkedom（预渲染/测试）共用。
  */
-import { Effect, Layer } from 'effect';
+import { Brand, Effect, Layer } from 'effect';
 import type { Scope } from 'effect';
 import { defineCapability } from '@bbblank/sdk';
 import type { Cleanup, PluginID } from '@bbblank/sdk';
 
 export type Render = (host: HTMLElement) => Cleanup | void;
 
+/** 具名挂载点；只能经 defineSlot 构造，裸字符串无法赋给它 */
+export type Slot = string & Brand.Brand<'Slot'>;
+
+export const defineSlot = Brand.nominal<Slot>();
+
+/** 宿主预置的根挂载点（缺省 document.body），shell 类插件在其中搭骨架 */
+export const RootSlot = defineSlot('root');
+
 export interface DomShape {
   readonly mount: (
     pluginId: PluginID,
-    slot: string,
+    slot: Slot,
     render: Render,
     weight?: number
   ) => Effect.Effect<void, never, Scope.Scope>;
-  /** 把 el 注册为具名 slot；同名 slot 已被其他插件定义时失败（defect） */
-  readonly defineSlot: (
+  /** 把 el 提供为 slot；同一 slot 已被其他插件提供时失败（defect） */
+  readonly provideSlot: (
     pluginId: PluginID,
-    name: string,
+    slot: Slot,
     el: HTMLElement
   ) => Effect.Effect<void, never, Scope.Scope>;
-  readonly slots: Effect.Effect<ReadonlyArray<string>>;
+  readonly slots: Effect.Effect<ReadonlyArray<Slot>>;
   readonly head: {
     readonly addMeta: (
       pluginId: PluginID,
@@ -41,9 +51,10 @@ export interface DomShape {
 
 export interface DomFacade {
   /** weight 越小越靠前，同 weight 按挂载先后 */
-  mount(slot: string, render: Render, weight?: number): Cleanup;
-  defineSlot(name: string, el: HTMLElement): Cleanup;
-  slots(): ReadonlyArray<string>;
+  mount(slot: Slot, render: Render, weight?: number): Cleanup;
+  provideSlot(slot: Slot, el: HTMLElement): Cleanup;
+  /** 当前已提供的 slot（诊断用） */
+  slots(): ReadonlyArray<Slot>;
   readonly head: {
     addMeta(attrs: Readonly<Record<string, string>>): Cleanup;
     addStyle(css: string): Cleanup;
@@ -58,10 +69,10 @@ export const Dom = defineCapability<'dom', DomShape, DomFacade>('dom', (s, ctx) 
   return {
     mount: (slot, render, weight) =>
       write(() => ctx.scoped(s.mount(ctx.pluginId, slot, ctx.guard(render), weight))),
-    defineSlot: (name, el) =>
+    provideSlot: (slot, el) =>
       write(() => {
-        ctx.audit('defineSlot', name);
-        return ctx.scoped(s.defineSlot(ctx.pluginId, name, el));
+        ctx.audit('provideSlot', slot);
+        return ctx.scoped(s.provideSlot(ctx.pluginId, slot, el));
       }),
     slots: () => ctx.runSync(s.slots),
     head: {
@@ -73,7 +84,7 @@ export const Dom = defineCapability<'dom', DomShape, DomFacade>('dom', (s, ctx) 
 
 interface Mount {
   readonly pluginId: PluginID;
-  readonly slot: string;
+  readonly slot: Slot;
   readonly render: Render;
   readonly weight: number;
   host?: HTMLElement;
@@ -95,8 +106,8 @@ export interface DomLiveOptions {
 
 export const DomLive = (doc: Document = globalThis.document, opts: DomLiveOptions = {}) =>
   Layer.sync(Dom.tag, () => {
-    const slots = new Map<string, { readonly owner: string; readonly el: HTMLElement }>([
-      ['root', { owner: 'host', el: opts.root ?? doc.body }],
+    const slots = new Map<Slot, { readonly owner: string; readonly el: HTMLElement }>([
+      [RootSlot, { owner: 'host', el: opts.root ?? doc.body }],
     ]);
     const mounts = new Set<Mount>();
 
@@ -149,21 +160,21 @@ export const DomLive = (doc: Document = globalThis.document, opts: DomLiveOption
             })
         ).pipe(Effect.asVoid),
 
-      defineSlot: (pluginId, name, el) =>
+      provideSlot: (pluginId, slot, el) =>
         Effect.acquireRelease(
           Effect.suspend(() => {
-            const existing = slots.get(name);
+            const existing = slots.get(slot);
             if (existing && existing.owner !== pluginId) {
-              return Effect.die(new Error(`slot "${name}" already defined by ${existing.owner}`));
+              return Effect.die(new Error(`slot "${slot}" already provided by ${existing.owner}`));
             }
-            slots.set(name, { owner: pluginId, el });
-            for (const m of mounts) if (m.slot === name) attach(m);
+            slots.set(slot, { owner: pluginId, el });
+            for (const m of mounts) if (m.slot === slot) attach(m);
             return Effect.void;
           }),
           () =>
             Effect.sync(() => {
-              for (const m of mounts) if (m.slot === name) detach(m);
-              slots.delete(name);
+              for (const m of mounts) if (m.slot === slot) detach(m);
+              slots.delete(slot);
             })
         ),
 

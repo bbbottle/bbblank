@@ -20,3 +20,8 @@ pnpm@11 workspace；TypeScript 7；vitest 5；effect `4.0.0-rc.112`（v4 API，�
 - kernel 测试共用工具在 `packages/kernel/src/test-kit.ts`（已从 `tsconfig.build.json` 排除）；`makeKernel` 缺省把监管退避设为 1–5ms。
 - 涉及监管器/重启的测试不要轮询中间态（重启可能快于轮询），用 setup 次数等单调量推进。
 - v4 陷阱：`Effect.runSync*` 使用独立的 "sync" 调度器；可能挂起的关闭/中断不要放进 `runSync`（参考 `plugin-api.ts` 的 `closer`）。
+
+## apps/blog 插件目录约定
+
+- 每个插件一个目录 `apps/blog/src/plugins/<name>/`：`index.ts` 只放插件定义与 setup 编排；`api.ts` 是对外契约（服务 Token、Slot、插件 id，只有类型与常量）；其余文件是内部实现。
+- 跨插件只能 import 对方的 `api.ts`，不得 import 其内部文件；新插件在 `plugins/index.ts` 的 `builtins` 中登记。

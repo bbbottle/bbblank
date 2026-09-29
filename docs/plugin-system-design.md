@@ -815,16 +815,22 @@ export interface Diagnostics {
 
 ```ts
 export interface DomFacade {
-  mount(slot: string, render: (host: HTMLElement) => Cleanup | void, weight?: number): Cleanup; // write
-  defineSlot(name: string, el: HTMLElement): Cleanup;                                         // write，审计
-  slots(): ReadonlyArray<string>;                                                             // read
+  mount(slot: Slot, render: (host: HTMLElement) => Cleanup | void, weight?: number): Cleanup; // write
+  provideSlot(slot: Slot, el: HTMLElement): Cleanup;                                        // write，审计
+  slots(): ReadonlyArray<Slot>;                                                               // read
   head: { addMeta(attrs: Record<string, string>): Cleanup; addStyle(css: string): Cleanup };  // write
 }
 export const DomLive: (doc?: Document, opts?: { root?: HTMLElement }) => Layer.Layer<'dom'>;
+
+// Slot 是 Effect Brand 品牌字符串，裸字符串不能赋给它
+export type Slot = string & Brand.Brand<'Slot'>;
+export const defineSlot = Brand.nominal<Slot>();
+export const RootSlot: Slot; // 宿主预置
 ```
 
 - 分区挂载：每个挂载是一个 `<div data-plugin data-slot data-weight>`，插件只拿到自己的 host 元素；同一 slot 内按 `weight` 升序、同 weight 按挂载先后。
-- slot 表由插件定义（通常是 shell），宿主只预置 `root`（缺省 `document.body`）。先挂载、后定义的 slot 会挂起等待；slot 撤销（shell 停用）时其中挂载全部卸载，重新定义时再挂回——插件启用顺序因此无关紧要，内容插件也无需声明对 shell 的依赖。同名 slot 被其他插件占用时 `defineSlot` 失败。
+- slot 由插件提供（通常是 shell），宿主只预置 `RootSlot`（缺省 `document.body`）。提供方把自己的 Slot Token 放在独立的契约模块中导出（如 `apps/blog/src/plugins/shell/api.ts`），挂载方 import Token 使用——拼错 slot 是编译错误，而不是运行时静默挂起。
+- 先挂载、后提供的 slot 会挂起等待；slot 撤销（shell 停用）时其中挂载全部卸载，重新提供时再挂回——插件启用顺序因此无关紧要，内容插件也无需声明对 shell 的依赖。同一 slot 已被其他插件提供时 `provideSlot` 失败。
 - `render` 经 `ctx.guard` 包装：抛错归因到插件并交给监管器，不影响宿主。
 - `addStyle` 注入 `@layer plugin-<id>`，插件样式按层隔离优先级。
 - 只依赖传入的 `Document`：浏览器与 happy-dom/linkedom（预渲染、测试）共用同一实现。
@@ -849,11 +855,18 @@ await kernel.bootstrap();                 // 按期望态恢复
 // 首次访问：安装 store 中尚无记录的内置插件
 ```
 
-**插件**（`apps/blog/src/plugins`）：
+**插件**（`apps/blog/src/plugins`）：每个插件一个目录——
 
-- `shell`（`[Dom, Router]`）：在 `root` 中搭骨架，定义 `header.left` / `header.right` / `main` / `footer` slot，站内链接 `a[data-link]` 交给路由。
-- `theme`（`[Dom, Storage]`）：偏好存私有 Storage，调色板注入 head，切换按钮挂到 `header.right`，切换时广播 `ThemeChanged`。
-- `content`（`[Dom, Router]`）：按路由把 React 页面渲染进 `main`——React 只出现在插件内部。
+```
+plugins/<name>/
+  index.ts   插件定义（manifest + setup 编排），只被 plugins/index.ts import
+  api.ts     对外契约（服务 Token / Slot / 插件 id，只有类型与常量）；其他插件只能 import 它
+  *.ts(x)    内部实现，不得跨插件 import
+```
+
+- `shell`（`[Dom, Router]`）：在 `RootSlot` 中搭骨架，提供 `ShellSlots`（`shell/api.ts`），站内链接 `a[data-link]` 交给路由。
+- `content`（`[Dom, Router]`）：按路由把 React 页面渲染进 `ShellSlots.main`——React 只出现在插件内部；提供 `content.selection` 服务（`content/api.ts`），外部可读取/订阅正文选区（`live` 实时 / 缺省稳定后）。
+- `highlight`（`[Dom, Router]`，依赖 `content ^1.0.0`）：消费 `content.selection`，用 CSS Custom Highlight API 模拟选区（浅色）并把选中文本标为高亮（稍深），不改动 DOM。
 
 空白 HTML 只需 `<script type="module" src="/src/main.ts">`。
 

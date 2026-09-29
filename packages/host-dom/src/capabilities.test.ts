@@ -3,7 +3,7 @@ import { Layer } from 'effect';
 import { InstallStore, PermissionPolicy, PluginLoader, createKernel } from '@bbblank/kernel';
 import { definePlugin } from '@bbblank/sdk';
 import type { AnyPluginModule, PluginID, SemVer } from '@bbblank/sdk';
-import { Dom, DomLive } from './dom-capability.js';
+import { Dom, DomLive, RootSlot, defineSlot } from './dom-capability.js';
 import { Router, RouterLive } from './router-capability.js';
 
 const id = (s: string) => s as PluginID;
@@ -20,13 +20,15 @@ const kernel = (mods: Record<string, AnyPluginModule>, permission?: Layer.Layer<
     ...(permission ? { permission } : {}),
   });
 
+const MainSlot = defineSlot('main');
+
 const shell = definePlugin({
   manifest: mf('shell'),
   capabilities: [Dom],
   setup: api => {
-    api.caps.dom.mount('root', host => {
+    api.caps.dom.mount(RootSlot, host => {
       const main = host.appendChild(document.createElement('main'));
-      const off = api.caps.dom.defineSlot('main', main);
+      const off = api.caps.dom.provideSlot(MainSlot, main);
       return off;
     });
   },
@@ -37,7 +39,7 @@ const widget = (name: string, weight: number) =>
     manifest: mf(name),
     capabilities: [Dom],
     setup: api => {
-      api.caps.dom.mount('main', host => {
+      api.caps.dom.mount(MainSlot, host => {
         host.textContent = name;
         return () => void (host.dataset.cleaned = 'yes');
       }, weight);
@@ -71,6 +73,14 @@ describe('Dom capability', () => {
     expect(document.body.children.length).toBe(0);
   });
 
+  it('slots are branded tokens, not strings', () => {
+    const check = (dom: import('./dom-capability.js').DomFacade) => {
+      // @ts-expect-error 裸字符串不能作为 Slot
+      dom.mount('main', () => {});
+    };
+    expect(check).toBeTypeOf('function');
+  });
+
   it('head styles are layered per plugin and removed on disable', async () => {
     const themed = definePlugin({
       manifest: mf('themed'),
@@ -96,7 +106,7 @@ describe('Dom capability', () => {
       capabilities: [Dom],
       setup: api => {
         setups++;
-        if (setups === 1) api.caps.dom.mount('root', () => { throw new Error('render boom'); });
+        if (setups === 1) api.caps.dom.mount(RootSlot, () => { throw new Error('render boom'); });
       },
     });
     const k = kernel({ bad });
@@ -114,7 +124,7 @@ describe('Dom capability', () => {
       capabilities: [Dom],
       setup: api => {
         try {
-          api.caps.dom.mount('root', () => {});
+          api.caps.dom.mount(RootSlot, () => {});
         } catch (e) {
           err = e;
         }

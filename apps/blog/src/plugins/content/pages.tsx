@@ -1,4 +1,4 @@
-/** 页面组件（React 只出现在插件内部，内核与宿主对此无感知） */
+/** content 的页面组件（React 只出现在插件内部，内核与宿主对此无感知） */
 import type { ReactElement } from "react";
 
 export const Entry = () => {
