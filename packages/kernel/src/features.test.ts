@@ -14,7 +14,6 @@ import {
 import type { AnyPluginModule } from '@bbblank/sdk';
 import { createKernel } from './create-kernel.js';
 import { InstallStore } from './install-store.js';
-import { decodeManifest } from './manifest-migrate.js';
 import { PermissionPolicy } from './permission-policy.js';
 import { PluginLoader } from './plugin-loader.js';
 import { PluginStorageLive } from './plugin-storage.js';
@@ -50,7 +49,7 @@ describe('semver', () => {
   });
 });
 
-describe('versions & manifest migration', () => {
+describe('versions & manifest validation', () => {
   it('dependency range mismatch fails with DependencyVersionMismatch', async () => {
     const k = makeKernel({
       router: noop('router'),
@@ -70,27 +69,17 @@ describe('versions & manifest migration', () => {
     await k.dispose();
   });
 
-  it.effect('schemaVersion 1 manifests are migrated; future versions rejected', () =>
-    Effect.gen(function* () {
-      const m = yield* decodeManifest({
-        id: 'legacy',
-        name: 'Legacy',
-        version: '1.0.0',
-        perm: 'admin',
-        dependencies: ['core'],
-        capabilities: [],
-      });
-      assert.strictEqual(m.schemaVersion, 2);
-      assert.deepEqual(m.dependencies, [{ id: id('core'), range: '*' }]);
-      assert.deepEqual(m.services, { provide: ['*'] });
-      assert.notProperty(m, 'perm');
-
-      const err = yield* Effect.flip(
-        decodeManifest({ schemaVersion: 99, id: 'x', name: 'x', version: '1.0.0', capabilities: [] })
-      );
-      assert.strictEqual(err._tag, 'ManifestInvalid');
-    })
-  );
+  it('manifests not matching the current schema are rejected (no migration)', async () => {
+    const legacy = definePlugin({
+      manifest: { ...mf('legacy'), dependencies: ['core'] } as never,
+      capabilities: [] as const,
+      setup: () => {},
+    });
+    const k = makeKernel({ legacy });
+    const err = await rejection(k.view.install(id('legacy')));
+    assert.strictEqual(err._tag, 'ManifestInvalid');
+    await k.dispose();
+  });
 
   it('loader returning a malformed module fails with ManifestInvalid', async () => {
     const k = makeKernel({ bad: { kind: 'plain', manifest: mf('bad'), capabilities: [] } as never });

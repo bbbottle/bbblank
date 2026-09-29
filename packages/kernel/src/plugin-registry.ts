@@ -22,6 +22,7 @@ import {
 } from 'effect';
 import {
   EventHub,
+  PluginManifest,
   PluginSetupError,
   SDK_VERSION,
   ServiceRegistry,
@@ -35,7 +36,6 @@ import type {
   Cleanup,
   PluginAPI,
   PluginID,
-  PluginManifest,
 } from '@bbblank/sdk';
 import { AuditLog } from './audit-log.js';
 import type { AuditEntry } from './audit-log.js';
@@ -46,6 +46,7 @@ import {
   DependencyMissing,
   DependencyVersionMismatch,
   DependentsActive,
+  ManifestInvalid,
   PermissionDenied,
   PluginLoadError,
   PluginNotFound,
@@ -57,7 +58,6 @@ import { EventBus } from './event-hub.js';
 import type { DeadLetter } from './event-hub.js';
 import { InstallStore } from './install-store.js';
 import { makeLocks } from './lock.js';
-import { decodeManifest } from './manifest-migrate.js';
 import { makeFacadeContext, makePlainAPI } from './plugin-api.js';
 import type { PluginEnv } from './plugin-api.js';
 import { PermissionPolicy } from './permission-policy.js';
@@ -309,7 +309,9 @@ export class PluginRegistry extends Context.Service<PluginRegistry, PluginRegist
             })
           );
           const mod = yield* validateModule(id, raw);
-          const manifest = yield* decodeManifest(manifestOf(mod));
+          const manifest = yield* Schema.decodeUnknownEffect(PluginManifest)(manifestOf(mod)).pipe(
+            Effect.mapError(e => new ManifestInvalid({ id, issue: String(e) }))
+          );
           if (manifest.id !== id) {
             return yield* Effect.fail(
               new PluginLoadError({ id, cause: `module declares id "${manifest.id}"` })
@@ -623,7 +625,8 @@ export class PluginRegistry extends Context.Service<PluginRegistry, PluginRegist
           if (shuttingDown) return;
           let lastError = describeError(cause);
           yield* Metric.update(Metric.withAttributes(faultsTotal, { plugin: id }), 1);
-          if ((yield* getRec(id))?.status !== 'enabled') {
+          // 共享锁等待进行中的 start/stop 结束（setup 期间上报的故障要在 enabled 后再处理）
+          if ((yield* withLocks([[id, 'shared']], getRec(id)))?.status !== 'enabled') {
             yield* Effect.logDebug('fault ignored: plugin not enabled', lastError.message);
             return;
           }

@@ -1,7 +1,6 @@
 export * from './errors.js';
 export * from './topo.js';
 export * from './lock.js';
-export * from './manifest-migrate.js';
 export * from './capability-broker.js';
 export * from './service-registry.js';
 export * from './event-hub.js';

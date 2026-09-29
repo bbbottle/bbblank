@@ -125,12 +125,10 @@ export type CapabilityRecord<Caps extends ReadonlyArray<AnyCapability>> = {
 ### 3.1 Manifest（Schema 定义）
 
 ```ts
-export const MANIFEST_SCHEMA_VERSION = 2;
 export const Dependency = Schema.Struct({ id: PluginID, range: VersionRange }); // range: "^1.2.0" / ">=1 <2" / "*"
 export const AccessLevel = Schema.Literals(['read', 'write']);
 
 export const PluginManifest = Schema.Struct({
-  schemaVersion: Schema.Literal(MANIFEST_SCHEMA_VERSION), // 结构演进的迁移锚点（§10.3）
   id: PluginID,
   name: Schema.String,
   version: SemVer,
@@ -146,7 +144,7 @@ export const PluginManifest = Schema.Struct({
 export type PluginManifest = typeof PluginManifest.Type;
 ```
 
-v3 的 `perm: 'guest' | 'admin'` 与 `dependencies: PluginID[]` 由 schemaVersion 1 → 2 的迁移函数转换（见 §10.3），不再出现在当前 Schema 中。
+v3 的 `perm: 'guest' | 'admin'` 与 `dependencies: PluginID[]` 已被取代；项目尚未投入使用，不提供迁移，不符合当前 Schema 的 manifest 直接 `ManifestInvalid`。
 
 ### 3.2 `PluginModule<Caps>`
 
@@ -176,7 +174,7 @@ export interface PluginModule<
   C = void,
 > {
   readonly kind: 'plain';
-  readonly manifest: ManifestInput<Caps>; // 作者手写部分；schemaVersion/sdkVersion/capabilities 由 definePlugin 合成
+  readonly manifest: ManifestInput<Caps>; // 作者手写部分；sdkVersion/capabilities 由 definePlugin 合成
   readonly capabilities: Caps;
   /** typed config（§10.7）：宿主提供的原始配置经此解码后作为 setup 第二参 */
   readonly configSchema?: Schema.Decoder<C>;
@@ -439,7 +437,7 @@ export class InstallStore extends Context.Service<InstallStore, InstallStoreShap
 }
 ```
 
-内核对 `load` 的返回先做 manifest 迁移（§10.3），再 `Schema.decodeUnknownEffect(PluginManifest)`，失败即 `ManifestInvalid`。这是动态边界的第一道校验。内核**不提供**任何平台实现（没有 `localStorage`，没有 `import.meta.glob`）——它们属于宿主；内核只提供与平台无关的 `memory` 与"基于抽象 `KeyValueStore`"的组合实现。
+内核对 `load` 的返回做 `Schema.decodeUnknownEffect(PluginManifest)`，失败即 `ManifestInvalid`。这是动态边界的第一道校验。内核**不提供**任何平台实现（没有 `localStorage`，没有 `import.meta.glob`）——它们属于宿主；内核只提供与平台无关的 `memory` 与"基于抽象 `KeyValueStore`"的组合实现。
 
 ### 4.5 `PluginRegistry`
 
@@ -704,10 +702,7 @@ export interface SupervisionPolicy {
 
 **依赖版本约束**：`dependencies: Array<{ id, range }>`。range 语法是 npm semver 的子集，由 sdk 内置的零依赖实现解析：`*`、`1.2.3`（精确）、`^1.2.3`、`~1.2.3`、`>=`/`>`/`<=`/`<`，空格连接表示"且"，`||` 表示"或"。预发布标签参与比较但不做 npm 的"同 tuple 才匹配预发布"特例。`enable` 前置检查：依赖必须 `enabled` 且 `satisfies(dep.version, range)`，否则 `DependencyVersionMismatch`。
 
-**manifest schemaVersion**：
-- 当前为 2。内核持有迁移链 `migrations: { [from: number]: (raw) => raw }`，加载时从 manifest 声明的版本（缺省视为 1）逐步迁移到当前版本，再做 Schema 解码。
-- 1 → 2：`dependencies: string[]` → `{ id, range: '*' }`；`perm: 'admin'` → `services.provide: ['*']`，`perm` 删除。
-- 高于内核所知版本的 manifest → `ManifestInvalid`（旧内核无法理解新插件，必须明确拒绝）。
+**manifest 结构**：只有当前标准一种，不带 schemaVersion、不做迁移；不符合 Schema 即 `ManifestInvalid`。结构演进通过 sdk 版本号表达（见下）。
 
 **sdk 兼容窗口**：
 - sdk 导出 `SDK_VERSION`，`definePlugin` / `defineEffectPlugin` 自动把它写入 `manifest.sdkVersion`。内核运行时用它自己链接的 `SDK_VERSION` 做检查：
@@ -715,7 +710,7 @@ export interface SupervisionPolicy {
   - `0.x`：主、次版本都必须相同（0.x 期间次版本即破坏性版本）。
   - 缺失 `sdkVersion`（手写的旧插件）：放行并记 warning 日志。
 - 不满足 → `SdkIncompatible`，插件不会被激活。
-- sdk 的发布约定：只增不改的契约变更（新增可选字段、新增 capability）递增次版本；删除/重命名/改变语义递增主版本并提供 manifest 迁移。
+- sdk 的发布约定：只增不改的契约变更（新增可选字段、新增 capability）递增次版本；删除/重命名/改变语义递增主版本。
 
 ### 10.4 加载与制品安全
 
@@ -803,7 +798,7 @@ export interface Diagnostics {
 | bootstrap 任一失败即整体失败             | 逐插件 `failed`，返回 `BootstrapReport`                    |
 | 运行期异常逃逸到宿主                     | guard 归因 + 监管器重启 + 熔断隔离                         |
 | `dependencies: PluginID[]`               | `{ id, range }` + `DependencyVersionMismatch`              |
-| manifest 无版本                          | `schemaVersion` + 迁移链；`sdkVersion` + 兼容窗口检查      |
+| manifest 无版本                          | `sdkVersion` + 兼容窗口检查                                |
 | `perm: guest/admin`                      | 按 capability 的 `read/write` + 按服务 key 的 provide + 审计 |
 | `PubSub.unbounded`                       | 每订阅者有界队列 + 策略 + 死信；校验缺省开启                |
 | 无插件配置                               | `configSchema` + `setup(api, config)` + `reconfigure`       |
@@ -814,60 +809,53 @@ export interface Diagnostics {
 
 ## 附录 A：DOM 宿主实例（`@host/dom`）
 
-仅示意 Capability 如何落地，内核对此一无所知。
+内核对此一无所知。实现见 `packages/host-dom`，示例站点见 `apps/blog`。
+
+**Dom**（`dom-capability.ts`）
 
 ```ts
-// 分区挂载：每个插件只拿到自己的 host 元素，禁止裸 document
-export interface DomShape {
-  readonly mount: (pluginId: PluginID, slot: string, render: (host: HTMLElement) => Cleanup, weight?: number) => Effect.Effect<void, never, Scope.Scope>
-  readonly head: {
-    readonly addMeta: (pluginId: PluginID, attrs: Record<string, string>) => Effect.Effect<void, never, Scope.Scope>
-    readonly addStyle: (pluginId: PluginID, css: string) => Effect.Effect<void, never, Scope.Scope>   // 注入到 @layer plugin-<id>
-  }
-}
-
 export interface DomFacade {
-  mount(slot: string, render: (host: HTMLElement) => Cleanup, weight?: number): Cleanup
-  head: { addMeta(attrs: Record<string, string>): Cleanup; addStyle(css: string): Cleanup }
+  mount(slot: string, render: (host: HTMLElement) => Cleanup | void, weight?: number): Cleanup; // write
+  defineSlot(name: string, el: HTMLElement): Cleanup;                                         // write，审计
+  slots(): ReadonlyArray<string>;                                                             // read
+  head: { addMeta(attrs: Record<string, string>): Cleanup; addStyle(css: string): Cleanup };  // write
 }
-
-export const Dom = defineCapability<"dom", DomShape, DomFacade>("dom", (s, ctx) => ({
-  mount: (slot, render, weight) => ctx.scoped(s.mount(ctx.pluginId, slot, render, weight)),
-  head: {
-    addMeta: (attrs) => ctx.scoped(s.head.addMeta(ctx.pluginId, attrs)),
-    addStyle: (css) => ctx.scoped(s.head.addStyle(ctx.pluginId, css)),
-  },
-}))
-
-export const DomBrowser: Layer.Layer<"dom"> = Layer.effect(Dom.tag, Effect.gen(function* () { /* SubscriptionRef 持有 slot 表；mount 用 acquireRelease 增删 <div data-plugin> */ }))
-export const DomLinkedom: Layer.Layer<"dom"> = /* 预渲染宿主同构实现 */
+export const DomLive: (doc?: Document, opts?: { root?: HTMLElement }) => Layer.Layer<'dom'>;
 ```
+
+- 分区挂载：每个挂载是一个 `<div data-plugin data-slot data-weight>`，插件只拿到自己的 host 元素；同一 slot 内按 `weight` 升序、同 weight 按挂载先后。
+- slot 表由插件定义（通常是 shell），宿主只预置 `root`（缺省 `document.body`）。先挂载、后定义的 slot 会挂起等待；slot 撤销（shell 停用）时其中挂载全部卸载，重新定义时再挂回——插件启用顺序因此无关紧要，内容插件也无需声明对 shell 的依赖。同名 slot 被其他插件占用时 `defineSlot` 失败。
+- `render` 经 `ctx.guard` 包装：抛错归因到插件并交给监管器，不影响宿主。
+- `addStyle` 注入 `@layer plugin-<id>`，插件样式按层隔离优先级。
+- 只依赖传入的 `Document`：浏览器与 happy-dom/linkedom（预渲染、测试）共用同一实现。
+
+**Router**（`router-capability.ts`）：`current()` / `onChange(cb)`（read，立即回调一次当前路径）、`navigate(path)`（write，History `pushState`）；`RouterLive(window)` 监听 `popstate`，随 layer 释放。
+
+**存储**：插件私有 KV 用 sdk 的 `Storage` capability + 内核 `PluginStorageLive`；宿主只提供 `localStorageKeyValue()`（`local-storage.ts`），它同时支撑 `InstallStore.fromKeyValue`。
+
+**远程插件**：`EsmPluginLoader`（`esm-loader.ts`，见 §10.4）。
+
+**组装**（`apps/blog/src/main.ts`）：
 
 ```ts
-// 插件
-export default definePlugin({
-  manifest: {
-    id: 'theme' as PluginID, // 字面量处断言；动态输入走 Schema.decodeUnknownSync
-    name: 'Theme',
-    version: '1.0.0' as SemVer,
-  },
-  capabilities: [Dom, Storage],
-  async setup(api) {
-    const saved = await api.caps.storage.get('theme');
-    api.caps.dom.head.addStyle(`:root { color-scheme: ${saved ?? 'light'} }`);
-    api.caps.dom.mount('header.right', host => {
-      const btn = host.appendChild(document.createElement('button'));
-      btn.textContent = '切换主题';
-      const onClick = () => api.events.emit(ThemeChanged, { theme: 'dark' });
-      btn.addEventListener('click', onClick);
-      return () => btn.removeEventListener('click', onClick);
-    });
-    // 访问 api.caps.router → 编译错误：未声明
-  },
+const kv = localStorageKeyValue();
+const kernel = createKernel({
+  capabilities: [Dom, Router, Storage],
+  capabilityLayer: Layer.mergeAll(DomLive(document), RouterLive(window), PluginStorageLive.pipe(Layer.provide(kv))),
+  loader: PluginLoader.fromMap(new Map(builtins.map(p => [p.manifest.id, p]))),
+  store: InstallStore.fromKeyValue.pipe(Layer.provide(kv)),
 });
+await kernel.bootstrap();                 // 按期望态恢复
+// 首次访问：安装 store 中尚无记录的内置插件
 ```
 
-`shell` 根插件（声明 `[Dom]`，定义 `header.left/right`、`main`、`footer` 等 slot 骨架）与 `router`、`content-source`、`markdown`、`comments` 等同为插件；空白 HTML 只需 `<script type="module" src="/kernel-boot.js">`。
+**插件**（`apps/blog/src/plugins`）：
+
+- `shell`（`[Dom, Router]`）：在 `root` 中搭骨架，定义 `header.left` / `header.right` / `main` / `footer` slot，站内链接 `a[data-link]` 交给路由。
+- `theme`（`[Dom, Storage]`）：偏好存私有 Storage，调色板注入 head，切换按钮挂到 `header.right`，切换时广播 `ThemeChanged`。
+- `content`（`[Dom, Router]`）：按路由把 React 页面渲染进 `main`——React 只出现在插件内部。
+
+空白 HTML 只需 `<script type="module" src="/src/main.ts">`。
 
 ## 附录 B：Effect v4 API 速查（新增部分）
 

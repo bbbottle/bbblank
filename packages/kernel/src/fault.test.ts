@@ -163,6 +163,23 @@ describe('fault isolation', () => {
     await k.dispose();
   });
 
+  it('a fault reported while the plugin is still starting is handled once it is enabled', async () => {
+    let setups = 0;
+    let k!: ReturnType<typeof makeKernel>;
+    const p = definePlugin({
+      manifest: mf('p'),
+      capabilities: [] as const,
+      setup: async () => {
+        if (++setups === 1) k.view.reportFault(id('p'), new Error('during setup'));
+        await sleep(5);
+      },
+    });
+    k = makeKernel({ p });
+    await k.view.install(id('p'));
+    await waitFor(() => setups === 2 && statusOf(k, 'p') === 'enabled');
+    await k.dispose();
+  });
+
   it('reportFault from the host restarts the plugin; faults for disabled plugins are ignored', async () => {
     let setups = 0;
     const p = definePlugin({ manifest: mf('p'), capabilities: [] as const, setup: () => void setups++ });
