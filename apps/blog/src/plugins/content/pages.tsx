@@ -1,11 +1,52 @@
 /** content 的页面组件（React 只出现在插件内部，内核与宿主对此无感知） */
 import type { ReactElement } from "react";
 
+type routes = "/" | "/notes" | "/photos" | string;
+
+const Square = ({
+  size = 12,
+  color = "#000",
+}: {
+  size?: number;
+  color?: string;
+}) => (
+  <span
+    style={{
+      display: "inline-block",
+      width: size,
+      height: size,
+      background: color,
+    }}
+  ></span>
+);
+
 export const Entry = () => {
   return (
     <article>
-      <p>Hi.</p>
-      <p>Welcome to my site.</p>
+      <p>你好，欢迎。</p>
+      <p>
+        十年前的
+        <abbr title="1993. 程序员">我</abbr>
+        会想在这里实现宇宙中最绚丽的动画，现在？也许只想留下一点利用咖啡时间组装好的
+        <a href="/notes" data-link>
+          文字
+        </a>
+        ，和手机最近拍到的
+        <a href="/pictures" data-link>
+          照片
+        </a>
+        。
+      </p>
+      <p className="signature" style={{ textAlign: "right" }}>
+        <p style={{ display: "inline-flex", flexDirection: "column" }}>
+          <span style={{ display: "inline-flex", alignItems: "center" }}>
+            <span>周</span>
+            <Square />
+            <Square />
+          </span>
+          <span>二零二六 九月三十</span>
+        </p>
+      </p>
     </article>
   );
 };
@@ -19,5 +60,14 @@ export const NotFound = ({ path }: { readonly path: string }) => (
   </article>
 );
 
-export const pageFor = (path: string): ReactElement =>
-  path === "/" ? <Entry /> : <NotFound path={path} />;
+const PAGES: Map<routes, ReactElement> = new Map([
+  ["/", <Entry />],
+  ["/notes", <div>Hi.</div>],
+  ["/photos", <div>Hi.</div>],
+]);
+
+export const pageFor = (path: string): ReactElement => {
+  const notFound = <NotFound path={path} />;
+
+  return PAGES.get(path) ?? notFound;
+};
