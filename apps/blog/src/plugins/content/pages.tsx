@@ -27,8 +27,7 @@ export const Entry = () => {
       <p>
         十年前的
         <abbr title="1993. 程序员">我</abbr>
-        会想在这里实现宇宙中最绚丽的动画，现在？也许只想留下一点利用咖啡时间组装好的文字，和手机最近拍到的
-        照片 。
+        会想在这里实现宇宙中最绚丽的动画，现在？也许只想留下一点利用咖啡时间组装好的文字，和手机最近拍到的照片。
       </p>
       <div className="signature" style={{ textAlign: "right" }}>
         <p style={{ display: "inline-flex", flexDirection: "column" }}>
