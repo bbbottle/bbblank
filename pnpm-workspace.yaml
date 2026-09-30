@@ -6,6 +6,7 @@ allowBuilds:
   esbuild: true
   msgpackr-extract: true
   ssh2: true
+  workerd: true
 fetchTimeout: 300000
 fetchRetries: 5
 fetchRetryMintimeout: 10000
