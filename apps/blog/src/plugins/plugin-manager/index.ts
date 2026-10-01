@@ -10,12 +10,12 @@ import type { SemVer } from "@bbblank/sdk";
 import { PluginManager } from "@bbblank/host-dom";
 import { SquareClickTopic } from "../content/api";
 import { AboutPluginId } from "../about/api";
-import { BlogPluginId } from "../blog/api";
+// import { BlogPluginId } from "../blog/api";
 import { DevtoolsOpenTopic, DevtoolsPluginId } from "../devtools/api";
-import { WeatherPluginId } from "../weather/api";
+// import { WeatherPluginId } from "../weather/api";
 import { PluginManagerPluginId } from "./api";
 
-const batch = [AboutPluginId, BlogPluginId, WeatherPluginId];
+const batch = [AboutPluginId];
 
 export const pluginManager = definePlugin({
   manifest: {
