@@ -3,25 +3,21 @@
  */
 import { Layer } from "effect";
 import { Storage } from "@bbblank/sdk";
-import {
-  InstallStore,
-  PluginLoader,
-  PluginStorageLive,
-  createKernel,
-} from "@bbblank/kernel";
+import { InstallStore, PluginStorageLive, createKernel } from "@bbblank/kernel";
 import type { KernelView } from "@bbblank/kernel";
 import {
   Dom,
   DomLive,
   Html,
   HtmlLive,
+  LazyPluginLoader,
   PluginManager,
   PluginManagerLive,
   Router,
   RouterLive,
   localStorageKeyValue,
 } from "@bbblank/host-dom";
-import { builtins, optionals } from "./plugins";
+import { plugins } from "./plugins";
 
 declare global {
   interface Window {
@@ -30,8 +26,6 @@ declare global {
 }
 
 const kv = localStorageKeyValue();
-
-const loadable = [...builtins, ...optionals];
 
 const kernel = createKernel({
   capabilities: [Dom, Router, Storage, PluginManager, Html],
@@ -42,13 +36,11 @@ const kernel = createKernel({
     PluginStorageLive.pipe(Layer.provide(kv)),
     PluginManagerLive((): KernelView => kernel.view),
   ),
-  loader: PluginLoader.fromMap(
-    new Map(loadable.map((p) => [p.manifest.id, p])),
-  ),
+  loader: LazyPluginLoader(new Map(plugins.map((p) => [p.id, p.load]))),
   store: InstallStore.fromKeyValue.pipe(Layer.provide(kv)),
 });
 
-const shipped = new Set(loadable.map((p) => p.manifest.id));
+const shipped = new Set(plugins.map((p) => p.id));
 const report = await kernel.bootstrap();
 for (const f of report.failed) {
   // store 是期望态：代码里已移除的插件仍留有记录，收敛为卸载，而不是每次启动都报加载失败
@@ -64,12 +56,13 @@ for (const f of report.failed) {
 
 // 首次访问 store 为空：安装内置插件；用户停用过的（记录为 disabled）保持不动
 const known = kernel.view.snapshot().plugins;
-for (const p of builtins) {
-  if (!known.has(p.manifest.id)) {
-    await kernel.view
-      .install(p.manifest.id)
-      .catch((e) => console.error("[bbblank] install failed", e));
-  }
+const missing = plugins.filter((p) => p.builtin && !known.has(p.id));
+// 安装须按依赖顺序串行，chunk 下载则提前并行发起，避免逐个请求的瀑布；import() 结果由运行时缓存
+for (const p of missing) void p.load().catch(() => {});
+for (const p of missing) {
+  await kernel.view
+    .install(p.id)
+    .catch((e) => console.error("[bbblank] install failed", e));
 }
 
 window.bbking = kernel.view;

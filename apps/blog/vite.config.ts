@@ -15,4 +15,24 @@ export default defineConfig({
       ),
     },
   },
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            // 只被 React 插件（shell/content）用到：随这些插件按需加载，不进入启动路径
+            {
+              name: "react",
+              test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+            },
+            // 启动路径必需：内核、宿主 capability 与各插件的 api.ts 契约（插件目录静态引用），合并为一个 chunk
+            {
+              name: "runtime",
+              test: /[\\/]node_modules[\\/](effect|dompurify)[\\/]|[\\/]packages[\\/](sdk|kernel|host)[\\/]src[\\/]|[\\/]src[\\/]plugins[\\/][^\\/]+[\\/]api\.ts$/,
+            },
+          ],
+        },
+      },
+    },
+  },
 });

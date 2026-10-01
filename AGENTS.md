@@ -24,4 +24,5 @@ pnpm@11 workspace；TypeScript 7；vitest 5；effect `4.0.0-rc.112`（v4 API，�
 ## apps/blog 插件目录约定
 
 - 每个插件一个目录 `apps/blog/src/plugins/<name>/`：`index.ts` 只放插件定义与 setup 编排；`api.ts` 是对外契约（服务 Token、Slot、插件 id，只有类型与常量）；其余文件是内部实现。
-- 跨插件只能 import 对方的 `api.ts`，不得 import 其内部文件；新插件在 `plugins/index.ts` 的 `builtins` 中登记。
+- 跨插件只能 import 对方的 `api.ts`，不得 import 其内部文件；新插件在 `plugins/index.ts` 的 `plugins` 目录中登记（`id` 取自其 `api.ts`，`load: () => import("./<name>")`，`builtin` 表示首次访问自动安装）。
+- 代码分割：`plugins/index.ts` 只能静态 import 各插件的 `api.ts`，插件实现一律经 `import()` 由 `LazyPluginLoader` 按需加载；`api.ts` 须保持轻量（不得引入 React 等重依赖），因其进入启动 chunk。chunk 分组见 `apps/blog/vite.config.ts`（`runtime` / `react`）。
