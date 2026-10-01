@@ -17,6 +17,10 @@ import { AboutPluginId } from "./about/api";
 import { BlogPluginId } from "./blog/api";
 import { ContentPluginId } from "./content/api";
 import { DevtoolsPluginId } from "./devtools/api";
+import { DevtoolsApplicationPluginId } from "./devtools-application/api";
+import { DevtoolsConsolePluginId } from "./devtools-console/api";
+import { DevtoolsMarketPluginId } from "./devtools-market/api";
+import { DevtoolsNetworkPluginId } from "./devtools-network/api";
 import { PluginManagerPluginId } from "./plugin-manager/api";
 import { ShellPluginId } from "./shell/api";
 import { WeatherPluginId } from "./weather/api";
@@ -83,8 +87,40 @@ export const plugins: ReadonlyArray<PluginEntry> = [
     name: "DevTools",
     version: "1.0.0",
     description:
-      "仿 Chrome DevTools 的插件面板：依赖树、活动流、耗时、审计与市场。",
+      "仿 Chrome DevTools 的底部抽屉：插件依赖树与启停；其余面板由面板插件提供。",
     builtin: false,
     load: () => import("./devtools").then((m) => m.devtools),
+  },
+  {
+    id: DevtoolsConsolePluginId,
+    name: "DevTools Console",
+    version: "1.0.0",
+    description: "DevTools 面板：插件之间的事件与内容，警告与错误计数。",
+    builtin: false,
+    load: () => import("./devtools-console").then((m) => m.devtoolsConsole),
+  },
+  {
+    id: DevtoolsNetworkPluginId,
+    name: "DevTools Network",
+    version: "1.0.0",
+    description: "DevTools 面板：插件加载、启用、停止各阶段耗时与瀑布图。",
+    builtin: false,
+    load: () => import("./devtools-network").then((m) => m.devtoolsNetwork),
+  },
+  {
+    id: DevtoolsApplicationPluginId,
+    name: "DevTools Application",
+    version: "1.0.0",
+    description: "DevTools 面板：安装记录、审计日志与事件统计。",
+    builtin: false,
+    load: () => import("./devtools-application").then((m) => m.devtoolsApplication),
+  },
+  {
+    id: DevtoolsMarketPluginId,
+    name: "DevTools Market",
+    version: "1.0.0",
+    description: "DevTools 面板：插件目录，未安装的插件可一键安装。",
+    builtin: false,
+    load: () => import("./devtools-market").then((m) => m.devtoolsMarket),
   },
 ];
