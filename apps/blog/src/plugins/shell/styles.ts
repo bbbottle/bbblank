@@ -1,7 +1,9 @@
 export const css = `
+  /* 最小高度相对 body 而非 100vh：底部停靠的面板（devtools）收缩 body 时，footer 仍贴在可视区域底部 */
+  html, body { height: 100%; }
   body { margin: 0; background: var(--bg, #fff); color: var(--fg, #222);
     font: 16px/1.7 system-ui, -apple-system, sans-serif; }
-  .shell { max-width: 42rem; margin: 0 auto; padding: 0 1.25rem; min-height: 100vh;
+  .shell { max-width: 42rem; margin: 0 auto; padding: 0 1.25rem; min-height: 100%; box-sizing: border-box;
     display: flex; flex-direction: column; }
   .shell > header { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 0; }
   .shell > header nav a { margin-right: 1rem; }

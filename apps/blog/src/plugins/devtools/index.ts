@@ -23,7 +23,29 @@ export const devtools = definePlugin({
   setup: (api) => {
     const { dom, pluginManager, storage } = api.caps;
     const model = new Model(pluginManager);
-    const ui = createDevtools(model, DevtoolsPluginId, storage);
+
+    // 停靠：面板打开时把页面的可视区域收缩到面板上方（与 Chrome 底部停靠一致），不遮挡任何内容。
+    // body 改为固定定位的滚动容器；切换前后把滚动位置在视口与 body 之间转移
+    let undock: (() => void) | undefined;
+    const dock = (height: number | undefined) => {
+      const docked = undock !== undefined;
+      const y = docked ? document.body.scrollTop : (document.scrollingElement?.scrollTop ?? 0);
+      undock?.();
+      undock = undefined;
+      if (height === undefined) {
+        if (docked) window.scrollTo(0, y);
+        return;
+      }
+      const off = dom.head.addStyle(
+        // height: auto——由 inset 决定高度，覆盖页面可能设置的 height（如 shell 的 100%）
+        `body { position: fixed; inset: 0 0 ${height}px 0; height: auto; overflow: auto; }`,
+      );
+      undock = () => void off();
+      document.body.scrollTop = y;
+    };
+    api.lifecycle.addCleanup(() => dock(undefined));
+
+    const ui = createDevtools(model, DevtoolsPluginId, storage, dock);
 
     api.events.on(DevtoolsOpenTopic, () => ui.open());
 

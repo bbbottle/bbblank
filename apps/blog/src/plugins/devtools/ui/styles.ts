@@ -48,6 +48,8 @@ button, input { font: inherit; color: inherit; }
 .tabbed-pane-header-tabs { display: flex; flex: auto; overflow: hidden; }
 .tabbed-pane-header-tab {
   position: relative; display: flex; align-items: center; gap: var(--sys-size-3);
+  /* tabbedPane.css：font: var(--sys-typescale-body4-medium)，即 500 12px/16px */
+  font: var(--sys-typescale-body4-medium);
   padding: 0 10px; color: var(--sys-color-on-surface-subtle);
   white-space: nowrap; cursor: default; user-select: none;
   border: 0; background: none;

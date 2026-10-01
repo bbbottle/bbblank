@@ -30,7 +30,13 @@ class DevtoolsElement extends HTMLElement {
   }
 }
 
-export const createDevtools = (model: Model, self: string, storage: StorageFacade) => {
+/** dock(px)：为面板在页面底部预留 px 高度；dock(undefined)：取消预留 */
+export const createDevtools = (
+  model: Model,
+  self: string,
+  storage: StorageFacade,
+  dock: (height: number | undefined) => void,
+) => {
   registerComponents();
   define("bb-devtools", DevtoolsElement);
   const host = document.createElement("bb-devtools") as DevtoolsElement;
@@ -107,6 +113,7 @@ export const createDevtools = (model: Model, self: string, storage: StorageFacad
   const setHeight = (px: number) => {
     height = Math.max(MIN_HEIGHT, Math.min(window.innerHeight - 40, px));
     host.style.setProperty("--dt-height", `${height}px`);
+    if (!host.hidden) dock(height);
   };
 
   const resizer = h("div", {
@@ -160,10 +167,12 @@ export const createDevtools = (model: Model, self: string, storage: StorageFacad
   const open = () => {
     if (!host.hidden) return;
     host.hidden = false;
+    dock(height);
     select(current);
   };
   const close = () => {
     host.hidden = true;
+    dock(undefined);
   };
 
   void Promise.all([storage.get("height"), storage.get("tab"), storage.get("seed")]).then(([hgt, tab, seed]) => {
