@@ -49,19 +49,19 @@
 ### 2.1 品牌类型与 Schema 共源
 
 ```ts
-import { Schema } from 'effect';
+import { Schema } from "effect";
 
-export const PluginID = Schema.String.pipe(Schema.brand('PluginID'));
+export const PluginID = Schema.String.pipe(Schema.brand("PluginID"));
 export type PluginID = typeof PluginID.Type;
 
 export const SemVer = Schema.String.pipe(
   Schema.check(Schema.isPattern(/^\d+\.\d+\.\d+/)),
-  Schema.brand('SemVer')
+  Schema.brand("SemVer"),
 );
 export type SemVer = typeof SemVer.Type;
 
 // v4：二值 guest/admin 已由按 capability/service 的授权取代（§10.5）
-export const AccessLevel = Schema.Literals(['read', 'write']);
+export const AccessLevel = Schema.Literals(["read", "write"]);
 export type AccessLevel = typeof AccessLevel.Type;
 ```
 
@@ -72,7 +72,7 @@ export type AccessLevel = typeof AccessLevel.Type;
 一个 Capability = 一个 `Context.Service` + 该服务 Shape 的"插件侧投影"。
 
 ```ts
-import { Context, Effect, Scope } from 'effect';
+import { Context, Effect, Scope } from "effect";
 
 /** 宿主侧：Effect 形态，供内核与 Effect 插件使用 */
 export interface CapabilityDef<Id extends string, Shape, Facade> {
@@ -92,7 +92,7 @@ export interface FacadeContext {
 
 export const defineCapability = <Id extends string, Shape, Facade>(
   id: Id,
-  facade: CapabilityDef<Id, Shape, Facade>['facade']
+  facade: CapabilityDef<Id, Shape, Facade>["facade"],
 ): CapabilityDef<Id, Shape, Facade> => ({
   id,
   tag: Context.Service<Id, Shape>(`@capability/${id}`),
@@ -107,8 +107,10 @@ export const defineCapability = <Id extends string, Shape, Facade>(
 ```ts
 export type AnyCapability = CapabilityDef<string, unknown, unknown>;
 
-export type FacadeOf<C> = C extends CapabilityDef<string, unknown, infer F> ? F : never;
-export type IdOf<C> = C extends CapabilityDef<infer I, unknown, unknown> ? I : never;
+export type FacadeOf<C> =
+  C extends CapabilityDef<string, unknown, infer F> ? F : never;
+export type IdOf<C> =
+  C extends CapabilityDef<infer I, unknown, unknown> ? I : never;
 
 /** { dom: DomFacade; router: RouterFacade } */
 export type CapabilityRecord<Caps extends ReadonlyArray<AnyCapability>> = {
@@ -126,7 +128,7 @@ export type CapabilityRecord<Caps extends ReadonlyArray<AnyCapability>> = {
 
 ```ts
 export const Dependency = Schema.Struct({ id: PluginID, range: VersionRange }); // range: "^1.2.0" / ">=1 <2" / "*"
-export const AccessLevel = Schema.Literals(['read', 'write']);
+export const AccessLevel = Schema.Literals(["read", "write"]);
 
 export const PluginManifest = Schema.Struct({
   id: PluginID,
@@ -139,7 +141,9 @@ export const PluginManifest = Schema.Struct({
   /** 每个 capability 申请的访问级别，缺省 "write"（§10.5） */
   access: Schema.optionalKey(Schema.Record(Schema.String, AccessLevel)),
   /** 允许提供（register）的服务 key，"*" 表示任意（§10.5） */
-  services: Schema.optionalKey(Schema.Struct({ provide: Schema.optionalKey(Schema.Array(Schema.String)) })),
+  services: Schema.optionalKey(
+    Schema.Struct({ provide: Schema.optionalKey(Schema.Array(Schema.String)) }),
+  ),
 });
 export type PluginManifest = typeof PluginManifest.Type;
 ```
@@ -173,19 +177,22 @@ export interface PluginModule<
   Caps extends ReadonlyArray<AnyCapability> = ReadonlyArray<AnyCapability>,
   C = void,
 > {
-  readonly kind: 'plain';
+  readonly kind: "plain";
   readonly manifest: ManifestInput<Caps>; // 作者手写部分；sdkVersion/capabilities 由 definePlugin 合成
   readonly capabilities: Caps;
   /** typed config（§10.7）：宿主提供的原始配置经此解码后作为 setup 第二参 */
   readonly configSchema?: Schema.Decoder<C>;
   readonly defaultConfig?: unknown;
-  readonly setup: (api: PluginAPI<Caps>, config: C) => void | Cleanup | Promise<void | Cleanup>;
+  readonly setup: (
+    api: PluginAPI<Caps>,
+    config: C,
+  ) => void | Cleanup | Promise<void | Cleanup>;
   readonly onManualInstall?: (api: PluginAPI<Caps>) => void | Promise<void>;
 }
 
 export const definePlugin = <const Caps extends ReadonlyArray<AnyCapability>>(
-  m: Omit<PluginModule<Caps>, 'kind'>
-): PluginModule<Caps> => ({ kind: 'plain', ...m });
+  m: Omit<PluginModule<Caps>, "kind">,
+): PluginModule<Caps> => ({ kind: "plain", ...m });
 ```
 
 `const Caps` 让 `capabilities: [Dom, Router]` 推导为元组而非数组，`api.caps` 才能得到精确的键集合。
@@ -207,7 +214,10 @@ export interface Topic<T> {
   // Decoder<T>：只保留解码视图；DecodingServices=never 才能用 decodeUnknownSync
   readonly schema: Schema.Decoder<T>;
 }
-export const defineTopic = <T>(key: string, schema: Schema.Decoder<T>): Topic<T> => ({
+export const defineTopic = <T>(
+  key: string,
+  schema: Schema.Decoder<T>,
+): Topic<T> => ({
   key,
   schema,
 });
@@ -219,24 +229,29 @@ export const defineTopic = <T>(key: string, schema: Schema.Decoder<T>): Topic<T>
 
 ```ts
 export interface ThemeService {
-  readonly current: () => 'light' | 'dark';
+  readonly current: () => "light" | "dark";
   readonly toggle: () => void;
 }
-export const Theme = defineService<ThemeService>('theme');
+export const Theme = defineService<ThemeService>("theme");
 ```
 
 ### 3.4 Effect 形态插件
 
 ```ts
-export interface EffectPluginModule<Caps extends ReadonlyArray<AnyCapability>, ROut, C = void> {
-  readonly kind: 'effect';
+export interface EffectPluginModule<
+  Caps extends ReadonlyArray<AnyCapability>,
+  ROut,
+  C = void,
+> {
+  readonly kind: "effect";
   readonly manifest: ManifestInput<Caps>;
   readonly capabilities: Caps;
   readonly configSchema?: Schema.Decoder<C>;
   readonly defaultConfig?: unknown;
   /** R 只能是所声明 Capability 的 Identifier 与内核服务，超出即编译错误；
    *  需要配置时写成 `(config: C) => Layer`（§10.7） */
-  readonly layer: PluginLayer<Caps, ROut> | ((config: C) => PluginLayer<Caps, ROut>);
+  readonly layer:
+    PluginLayer<Caps, ROut> | ((config: C) => PluginLayer<Caps, ROut>);
 }
 type PluginLayer<Caps, ROut> = Layer.Layer<
   ROut,
@@ -244,9 +259,12 @@ type PluginLayer<Caps, ROut> = Layer.Layer<
   IdOf<Caps[number]> | KernelServices | Scope.Scope
 >;
 
-export const defineEffectPlugin = <const Caps extends ReadonlyArray<AnyCapability>, ROut>(
-  m: Omit<EffectPluginModule<Caps, ROut>, 'kind'>
-): EffectPluginModule<Caps, ROut> => ({ kind: 'effect', ...m });
+export const defineEffectPlugin = <
+  const Caps extends ReadonlyArray<AnyCapability>,
+  ROut,
+>(
+  m: Omit<EffectPluginModule<Caps, ROut>, "kind">,
+): EffectPluginModule<Caps, ROut> => ({ kind: "effect", ...m });
 ```
 
 这是强类型的关键收益点：**Layer 的 `R` 通道被 manifest 声明的能力集合封顶**。忘记声明 `Router` 却 `yield* RouterCapability.tag`，`tsc` 直接报错，而不是运行时缺服务。
@@ -255,16 +273,19 @@ export const defineEffectPlugin = <const Caps extends ReadonlyArray<AnyCapabilit
 
 ```ts
 // sdk：插件 setup/layer 可抛出的契约错误（kernel 的 PluginError 联合包含它）
-export class PluginSetupError extends Data.TaggedError('PluginSetupError')<{
+export class PluginSetupError extends Data.TaggedError("PluginSetupError")<{
   id: PluginID;
   cause: unknown;
 }> {}
 
 // sdk：插件可依赖的内核服务 Tag（Shape 即契约；实现见 kernel §4.3）
-export class ServiceRegistry extends Context.Service<ServiceRegistry, ServiceRegistryShape>()(
-  '@kernel/ServiceRegistry'
+export class ServiceRegistry extends Context.Service<
+  ServiceRegistry,
+  ServiceRegistryShape
+>()("@kernel/ServiceRegistry") {}
+export class EventHub extends Context.Service<EventHub, EventHubShape>()(
+  "@kernel/EventHub",
 ) {}
-export class EventHub extends Context.Service<EventHub, EventHubShape>()('@kernel/EventHub') {}
 export type KernelServices = ServiceRegistry | EventHub;
 ```
 
@@ -279,48 +300,60 @@ export type KernelServices = ServiceRegistry | EventHub;
 ### 4.1 错误
 
 ```ts
-import { Data } from 'effect';
+import { Data } from "effect";
 
-export class PluginNotFound extends Data.TaggedError('PluginNotFound')<{ id: PluginID }> {}
-export class PluginLoadError extends Data.TaggedError('PluginLoadError')<{
+export class PluginNotFound extends Data.TaggedError("PluginNotFound")<{
+  id: PluginID;
+}> {}
+export class PluginLoadError extends Data.TaggedError("PluginLoadError")<{
   id: PluginID;
   cause: unknown;
 }> {}
-export class ManifestInvalid extends Data.TaggedError('ManifestInvalid')<{
+export class ManifestInvalid extends Data.TaggedError("ManifestInvalid")<{
   id: string;
   issue: string;
 }> {}
 // PluginSetupError 定义在 sdk（见 §3.4）：它是插件可抛出的契约错误
 // PermissionDenied 移入 sdk（插件调用 facade/services 时可见）；required 形如
 // "capability:dom:write" / "service:provide:theme"（§10.5）
-export class PermissionDenied extends Data.TaggedError('PermissionDenied')<{
+export class PermissionDenied extends Data.TaggedError("PermissionDenied")<{
   id: PluginID;
   required: string;
 }> {}
-export class CapabilityMissing extends Data.TaggedError('CapabilityMissing')<{
+export class CapabilityMissing extends Data.TaggedError("CapabilityMissing")<{
   id: PluginID;
   capability: string;
 }> {}
-export class DependencyMissing extends Data.TaggedError('DependencyMissing')<{
+export class DependencyMissing extends Data.TaggedError("DependencyMissing")<{
   id: PluginID;
   missing: ReadonlyArray<PluginID>;
 }> {}
-export class DependencyCycle extends Data.TaggedError('DependencyCycle')<{
+export class DependencyCycle extends Data.TaggedError("DependencyCycle")<{
   cycle: ReadonlyArray<PluginID>;
 }> {}
-export class DependentsActive extends Data.TaggedError('DependentsActive')<{
+export class DependentsActive extends Data.TaggedError("DependentsActive")<{
   id: PluginID;
   dependents: ReadonlyArray<PluginID>;
 }> {}
 
 // v4 新增（§10）
-export class DependencyVersionMismatch extends Data.TaggedError('DependencyVersionMismatch')<{
-  id: PluginID; dependency: PluginID; range: string; actual: string;
+export class DependencyVersionMismatch extends Data.TaggedError(
+  "DependencyVersionMismatch",
+)<{
+  id: PluginID;
+  dependency: PluginID;
+  range: string;
+  actual: string;
 }> {}
-export class SdkIncompatible extends Data.TaggedError('SdkIncompatible')<{
-  id: PluginID; required: string; actual: string;
+export class SdkIncompatible extends Data.TaggedError("SdkIncompatible")<{
+  id: PluginID;
+  required: string;
+  actual: string;
 }> {}
-export class ConfigInvalid extends Data.TaggedError('ConfigInvalid')<{ id: PluginID; issue: string }> {}
+export class ConfigInvalid extends Data.TaggedError("ConfigInvalid")<{
+  id: PluginID;
+  issue: string;
+}> {}
 // sdk 侧新增的契约错误：StorageError（Storage capability）、EventPayloadInvalid（emit 校验失败，同步抛给发布方）
 
 export type PluginError =
@@ -349,48 +382,60 @@ export interface CapabilityBrokerShape {
   /** 为某插件构建 caps 记录：只包含其声明且宿主提供的能力 */
   readonly facadesFor: (
     manifest: PluginManifest,
-    ctx: FacadeContext
+    ctx: FacadeContext,
   ) => Effect.Effect<Record<string, unknown>, CapabilityMissing>;
   /** Effect 插件用：把声明的能力 Context 子集提取出来 */
   readonly contextFor: (
-    manifest: PluginManifest
+    manifest: PluginManifest,
   ) => Effect.Effect<Context.Context<never>, CapabilityMissing>;
 }
 
-export class CapabilityBroker extends Context.Service<CapabilityBroker, CapabilityBrokerShape>()(
-  '@kernel/CapabilityBroker'
-) {
+export class CapabilityBroker extends Context.Service<
+  CapabilityBroker,
+  CapabilityBrokerShape
+>()("@kernel/CapabilityBroker") {
   static readonly fromDefs = (defs: ReadonlyArray<AnyCapability>) =>
     Layer.effect(
       this,
       Effect.gen(function* () {
         const ctx = yield* Effect.context<never>();
-        const byId = new Map(defs.map(d => [d.id, d] as const));
+        const byId = new Map(defs.map((d) => [d.id, d] as const));
 
-        const facadesFor: CapabilityBrokerShape['facadesFor'] = (manifest, fctx) =>
-          Effect.forEach(manifest.capabilities, id => {
+        const facadesFor: CapabilityBrokerShape["facadesFor"] = (
+          manifest,
+          fctx,
+        ) =>
+          Effect.forEach(manifest.capabilities, (id) => {
             const def = byId.get(id);
             const shape = def && Context.getOption(ctx, def.tag);
             return def && Option.isSome(shape)
               ? Effect.succeed([id, def.facade(shape.value, fctx)] as const)
-              : Effect.fail(new CapabilityMissing({ id: manifest.id, capability: id }));
+              : Effect.fail(
+                  new CapabilityMissing({ id: manifest.id, capability: id }),
+                );
           }).pipe(Effect.map(Object.fromEntries));
 
-        const contextFor: CapabilityBrokerShape['contextFor'] = manifest =>
-          Effect.forEach(manifest.capabilities, id => {
+        const contextFor: CapabilityBrokerShape["contextFor"] = (manifest) =>
+          Effect.forEach(manifest.capabilities, (id) => {
             const def = byId.get(id);
             const shape = def && Context.getOption(ctx, def.tag);
             return def && Option.isSome(shape)
               ? Effect.succeed(Context.make(def.tag, shape.value))
-              : Effect.fail(new CapabilityMissing({ id: manifest.id, capability: id }));
-          }).pipe(Effect.map(cs => cs.reduce(Context.merge, Context.empty())));
+              : Effect.fail(
+                  new CapabilityMissing({ id: manifest.id, capability: id }),
+                );
+          }).pipe(
+            Effect.map((cs) => cs.reduce(Context.merge, Context.empty())),
+          );
 
         return CapabilityBroker.of({
-          has: id => byId.has(id) && Context.getOption(ctx, byId.get(id)!.tag)._tag === 'Some',
+          has: (id) =>
+            byId.has(id) &&
+            Context.getOption(ctx, byId.get(id)!.tag)._tag === "Some",
           facadesFor,
           contextFor,
         });
-      })
+      }),
     );
 }
 ```
@@ -409,13 +454,14 @@ export class CapabilityBroker extends Context.Service<CapabilityBroker, Capabili
 ```ts
 export interface PluginLoaderShape {
   readonly load: (
-    id: PluginID
+    id: PluginID,
   ) => Effect.Effect<AnyPluginModule, PluginLoadError | ManifestInvalid>;
   readonly listAvailable: Effect.Effect<ReadonlyArray<PluginManifest>>;
 }
-export class PluginLoader extends Context.Service<PluginLoader, PluginLoaderShape>()(
-  '@kernel/PluginLoader'
-) {}
+export class PluginLoader extends Context.Service<
+  PluginLoader,
+  PluginLoaderShape
+>()("@kernel/PluginLoader") {}
 
 /** 期望态（desired state）：宿主希望哪些插件被安装/启用、以何配置 */
 export const InstallRecord = Schema.Struct({
@@ -428,10 +474,13 @@ export interface InstallStoreShape {
   readonly put: (rec: InstallRecord) => Effect.Effect<void, StorageError>;
   readonly remove: (id: PluginID) => Effect.Effect<void, StorageError>;
 }
-export class InstallStore extends Context.Service<InstallStore, InstallStoreShape>()(
-  '@kernel/InstallStore'
-) {
-  static readonly memory: (initial?: Iterable<PluginID | InstallRecord>) => Layer.Layer<InstallStore>;
+export class InstallStore extends Context.Service<
+  InstallStore,
+  InstallStoreShape
+>()("@kernel/InstallStore") {
+  static readonly memory: (
+    initial?: Iterable<PluginID | InstallRecord>,
+  ) => Layer.Layer<InstallStore>;
   /** durable：任何 KeyValueStore（宿主提供 localStorage/IndexedDB/fs 适配）+ Schema JSON 编解码 */
   static readonly fromKeyValue: Layer.Layer<InstallStore, never, KeyValueStore>;
 }
@@ -449,18 +498,21 @@ const activate = (rec: PluginRecord) =>
     yield* (yield* PermissionPolicy).check(rec.manifest);
     const mod = yield* (yield* PluginLoader).load(rec.manifest.id);
     const broker = yield* CapabilityBroker;
-    const scope = yield* Scope.make('sequential');
-    const kernelCtx = yield* Effect.context<ServiceRegistry | EventHub | PluginRegistry>();
+    const scope = yield* Scope.make("sequential");
+    const kernelCtx = yield* Effect.context<
+      ServiceRegistry | EventHub | PluginRegistry
+    >();
 
-    const fail = (cause: unknown) => new PluginSetupError({ id: rec.manifest.id, cause });
+    const fail = (cause: unknown) =>
+      new PluginSetupError({ id: rec.manifest.id, cause });
     const rollback = Effect.tapError(() => Scope.close(scope, Exit.void));
 
-    if (mod.kind === 'effect') {
+    if (mod.kind === "effect") {
       const capCtx = yield* broker.contextFor(rec.manifest);
       yield* Layer.buildWithScope(mod.layer, scope).pipe(
         Effect.provide(Context.merge(kernelCtx, capCtx)),
         Effect.mapError(fail),
-        rollback
+        rollback,
       );
       return scope;
     }
@@ -476,9 +528,9 @@ const activate = (rec: PluginRecord) =>
       },
       catch: fail,
     }).pipe(
-      Effect.timeout('10 seconds'),
-      Effect.catchTag('TimeoutError', e => Effect.fail(fail(e))),
-      rollback
+      Effect.timeout("10 seconds"),
+      Effect.catchTag("TimeoutError", (e) => Effect.fail(fail(e))),
+      rollback,
     );
     return scope;
   });
@@ -506,30 +558,32 @@ export interface KernelView {
 
 // KernelEnv：runtime 内全部服务环境（内核内部服务 + KernelServices + 宿主 Capability），定义在 kernel
 export const makeKernelView = (
-  rt: ManagedRuntime.ManagedRuntime<KernelEnv, never>
+  rt: ManagedRuntime.ManagedRuntime<KernelEnv, never>,
 ): KernelView => {
   const reg = rt.runSync(Effect.service(PluginRegistry));
   return {
     snapshot: () => rt.runSync(SubscriptionRef.get(reg.state)),
-    subscribe: cb => {
+    subscribe: (cb) => {
       const fiber = rt.runFork(
-        SubscriptionRef.changes(reg.state).pipe(Stream.runForEach(() => Effect.sync(cb)))
+        SubscriptionRef.changes(reg.state).pipe(
+          Stream.runForEach(() => Effect.sync(cb)),
+        ),
       );
       return () => {
         rt.runFork(Fiber.interrupt(fiber));
       };
     },
-    enable: id => rt.runPromise(reg.enable(id)),
-    disable: id => rt.runPromise(reg.disable(id)),
-    install: id => rt.runPromise(reg.install(id, { manual: true })),
-    uninstall: id => rt.runPromise(reg.uninstall(id)),
+    enable: (id) => rt.runPromise(reg.enable(id)),
+    disable: (id) => rt.runPromise(reg.disable(id)),
+    install: (id) => rt.runPromise(reg.install(id, { manual: true })),
+    uninstall: (id) => rt.runPromise(reg.uninstall(id)),
   };
 };
 ```
 
 `subscribe`/`snapshot` 恰好是 `useSyncExternalStore` 的签名，也适配 Lit `@lit/task`、Svelte store、或纯 DOM 的手动刷新。
 
-v4 追加：`reconfigure(id, rawConfig)`（§10.7）、`reportFault(id, cause)`（宿主把 `window.onerror` 等平台级未捕获异常归因后上报，§10.2）、`diagnostics()`（可 `JSON.stringify` 的诊断导出，§10.9）。`PluginRecord` 增加 `lastError`、`restarts` 字段，`status` 扩展为 `starting | enabled | stopping | disabled | failed | quarantined`。
+v4 追加：`reconfigure(id, rawConfig)`（§10.7）、`reportFault(id, cause)`（宿主把 `window.onerror` 等平台级未捕获异常归因后上报，§10.2）、`diagnostics()`（可 `JSON.stringify` 的诊断导出，§10.9）、`observe(cb, { replay })`（活动流，§10.10）。`PluginRecord` 增加 `lastError`、`restarts` 字段，`status` 扩展为 `starting | enabled | stopping | disabled | failed | quarantined`。
 
 ---
 
@@ -545,19 +599,20 @@ export interface KernelConfig<Caps extends ReadonlyArray<AnyCapability>> {
 }
 
 export const createKernel = <const Caps extends ReadonlyArray<AnyCapability>>(
-  cfg: KernelConfig<Caps>
+  cfg: KernelConfig<Caps>,
 ) => {
   const kernel = PluginRegistry.layer.pipe(
     Layer.provideMerge(Layer.mergeAll(ServiceRegistry.layer, EventHub.layer)),
     Layer.provideMerge(CapabilityBroker.fromDefs(cfg.capabilities)),
     Layer.provideMerge(cfg.capabilityLayer),
-    Layer.provideMerge(Layer.mergeAll(cfg.loader, cfg.store, cfg.permission))
+    Layer.provideMerge(Layer.mergeAll(cfg.loader, cfg.store, cfg.permission)),
   );
   const runtime = ManagedRuntime.make(kernel);
   return {
     runtime,
     view: makeKernelView(runtime),
-    bootstrap: () => runtime.runPromise(Effect.flatMap(PluginRegistry, r => r.bootstrap)),
+    bootstrap: () =>
+      runtime.runPromise(Effect.flatMap(PluginRegistry, (r) => r.bootstrap)),
     dispose: () => runtime.dispose(),
   };
 };
@@ -642,12 +697,12 @@ readonly audit?: Layer.Layer<AuditLog>;            // §10.5 缺省为内存环�
 
 每个插件一个 `Semaphore.makeUnsafe(MAX)`：独占 = 取 `MAX` 个许可，共享 = 取 1 个。
 
-| 操作                         | 锁                                      |
-| ---------------------------- | --------------------------------------- |
-| `install(A)` / `enable(A)`   | A 独占 + A 的每个依赖共享               |
-| `disable(A)` / `uninstall(A)`| A 独占                                  |
-| 级联重启/隔离 `A`            | A 及其所有传递依赖者独占                |
-| 停机                         | 按层逐个独占                            |
+| 操作                          | 锁                        |
+| ----------------------------- | ------------------------- |
+| `install(A)` / `enable(A)`    | A 独占 + A 的每个依赖共享 |
+| `disable(A)` / `uninstall(A)` | A 独占                    |
+| 级联重启/隔离 `A`             | A 及其所有传递依赖者独占  |
+| 停机                          | 按层逐个独占              |
 
 - 多把锁**按 PluginID 字典序获取**，杜绝死锁。
 - 不变量 1：同一插件任意时刻至多一个生命周期操作在执行——并发 `enable(A)` 只会构建一次 Scope，第二个调用观察到 `enabled` 后直接返回。
@@ -673,13 +728,13 @@ readonly audit?: Layer.Layer<AuditLog>;            // §10.5 缺省为内存环�
 
 **捕获面**：插件代码在内核之外被调用的每个入口都经过 `guard`，异常被归因到插件并投递给监管器，而不是逃逸到宿主调用方的栈上。
 
-| 入口                                   | 处理                                                                                         |
-| -------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `events.on` 回调                       | 同步 throw / 返回 rejected Promise → 归因订阅者，订阅继续存活                                |
-| 插件注册的服务（`services.register`）  | impl 被包成 Proxy：方法 throw/reject → 归因**提供者**；调用方仍收到原错误（它必须知道失败）|
-| `FacadeContext.scoped` 中的 fiber      | 非中断的失败/defect → 归因该插件                                                             |
-| 交给 capability 的插件回调             | capability 实现用 `ctx.guard(cb)` 包装（例如 `dom.mount(slot, ctx.guard(render))`）          |
-| 平台级未捕获异常                       | 宿主（如 `window.onerror`/`unhandledrejection`）自行归因后调用 `KernelView.reportFault`      |
+| 入口                                  | 处理                                                                                        |
+| ------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `events.on` 回调                      | 同步 throw / 返回 rejected Promise → 归因订阅者，订阅继续存活                               |
+| 插件注册的服务（`services.register`） | impl 被包成 Proxy：方法 throw/reject → 归因**提供者**；调用方仍收到原错误（它必须知道失败） |
+| `FacadeContext.scoped` 中的 fiber     | 非中断的失败/defect → 归因该插件                                                            |
+| 交给 capability 的插件回调            | capability 实现用 `ctx.guard(cb)` 包装（例如 `dom.mount(slot, ctx.guard(render))`）         |
+| 平台级未捕获异常                      | 宿主（如 `window.onerror`/`unhandledrejection`）自行归因后调用 `KernelView.reportFault`     |
 
 Effect 插件自己 fork 的 fiber 不在监管范围内（Effect 作者应使用 `Effect.forkScoped` 并自行处理错误）；其 layer 构建失败仍走 `PluginSetupError`。
 
@@ -692,9 +747,13 @@ Effect 插件自己 fork 的 fiber 不在监管范围内（Effect 作者应使�
 
 ```ts
 export interface SupervisionPolicy {
-  readonly maxRestarts: number;          // 0 = 故障即 failed，不重启
+  readonly maxRestarts: number; // 0 = 故障即 failed，不重启
   readonly window: Duration.Input;
-  readonly backoff: { readonly initial: Duration.Input; readonly max: Duration.Input; readonly factor: number };
+  readonly backoff: {
+    readonly initial: Duration.Input;
+    readonly max: Duration.Input;
+    readonly factor: number;
+  };
 }
 ```
 
@@ -705,6 +764,7 @@ export interface SupervisionPolicy {
 **manifest 结构**：只有当前标准一种，不带 schemaVersion、不做迁移；不符合 Schema 即 `ManifestInvalid`。结构演进通过 sdk 版本号表达（见下）。
 
 **sdk 兼容窗口**：
+
 - sdk 导出 `SDK_VERSION`，`definePlugin` / `defineEffectPlugin` 自动把它写入 `manifest.sdkVersion`。内核运行时用它自己链接的 `SDK_VERSION` 做检查：
   - `1.x` 及以后：主版本相同，且插件的次版本 ≤ 内核的次版本（内核向后兼容同主版本内更早的插件）。
   - `0.x`：主、次版本都必须相同（0.x 期间次版本即破坏性版本）。
@@ -730,12 +790,15 @@ export interface SupervisionPolicy {
 
 ```ts
 export interface PermissionPolicyShape {
-  readonly check: (m: PluginManifest) => Effect.Effect<void, PermissionDenied>;     // 激活闸门
-  readonly access: (m: PluginManifest, capability: string) => AccessLevel | undefined; // undefined = 拒绝
+  readonly check: (m: PluginManifest) => Effect.Effect<void, PermissionDenied>; // 激活闸门
+  readonly access: (
+    m: PluginManifest,
+    capability: string,
+  ) => AccessLevel | undefined; // undefined = 拒绝
   readonly canProvide: (m: PluginManifest, serviceKey: string) => boolean;
 }
-PermissionPolicy.permissive                     // 信任 manifest 申请
-PermissionPolicy.restrict(limitsFor)            // 宿主按插件给出上限，取交集
+PermissionPolicy.permissive; // 信任 manifest 申请
+PermissionPolicy.restrict(limitsFor); // 宿主按插件给出上限，取交集
 ```
 
 - 激活时每个声明的 capability 都解析出有效级别；被拒绝 → `PermissionDenied(capability:<id>)`，插件不会激活。
@@ -782,28 +845,89 @@ export interface Diagnostics {
   readonly at: number;
   readonly healthy: boolean; // 没有 failed/quarantined
   readonly plugins: ReadonlyArray<{
-    id; name; version; kind; status; restarts; lastError?; dependencies; services: string[];
+    id;
+    name;
+    version;
+    kind;
+    status;
+    restarts;
+    lastError?;
+    dependencies;
+    services: string[];
   }>;
-  readonly events: { published: number; dropped: number; deadLetters: ReadonlyArray<DeadLetter> };
+  readonly events: {
+    published: number;
+    dropped: number;
+    deadLetters: ReadonlyArray<DeadLetter>;
+  };
   readonly audit: ReadonlyArray<AuditEntry>;
 }
 ```
 
-### 10.10 与 v3 的差异
+### 10.10 活动流（Activity）
 
-| v3                                       | v4                                                         |
-| ---------------------------------------- | ---------------------------------------------------------- |
-| Registry 操作无互斥                      | 每插件读写锁 + 字典序多锁                                  |
-| 插件 Scope fork 自 layer scope           | 独立 Scope + reverse-Kahn 有序停机                         |
-| bootstrap 任一失败即整体失败             | 逐插件 `failed`，返回 `BootstrapReport`                    |
-| 运行期异常逃逸到宿主                     | guard 归因 + 监管器重启 + 熔断隔离                         |
-| `dependencies: PluginID[]`               | `{ id, range }` + `DependencyVersionMismatch`              |
-| manifest 无版本                          | `sdkVersion` + 兼容窗口检查                                |
-| `perm: guest/admin`                      | 按 capability 的 `read/write` + 按服务 key 的 provide + 审计 |
-| `PubSub.unbounded`                       | 每订阅者有界队列 + 策略 + 死信；校验缺省开启                |
-| 无插件配置                               | `configSchema` + `setup(api, config)` + `reconfigure`       |
-| `InstallStore` 只存 ID 集合              | 期望态记录 + durable `fromKeyValue` + 插件 `Storage` 能力   |
-| 无可观测性                               | span / 注解日志 / 指标 / JSON 诊断导出                     |
+诊断导出（§10.9）是某一时刻的快照，不足以回答「刚才发生了什么、各阶段耗时多少」。内核另维护一条**活动流**：事件发布与生命周期阶段的有序记录。
+
+```ts
+export type Activity =
+  | {
+      kind: "event";
+      seq;
+      at;
+      topic;
+      publisher: string;
+      payload: unknown;
+      subscribers: number;
+    }
+  | { kind: "event-invalid"; seq; at; topic; publisher: string; issue: string }
+  | {
+      kind: "event-dropped";
+      seq;
+      at;
+      topic;
+      subscriber: string;
+      reason: "dropped-newest" | "dropped-oldest";
+    }
+  | {
+      kind: "lifecycle";
+      seq;
+      at;
+      pluginId;
+      phase: "load" | "setup" | "stop";
+      durationMs: number;
+      outcome: "ok" | "error";
+      error?: SerializedError;
+    };
+
+export interface ActivityLogShape {
+  readonly record: (a: ActivityInput) => Effect.Effect<void>; // 分配 seq，写入环形缓冲并通知观察者
+  readonly recent: Effect.Effect<ReadonlyArray<Activity>>;
+  readonly observe: (cb: (a: Activity) => void) => Effect.Effect<() => void>;
+}
+```
+
+- **记录点**：
+  - `EventBus.validate` 失败 → `event-invalid`；`deliver` → `event`（`subscribers` 为投递时的订阅者数）；背压丢弃 → `event-dropped`（与死信同源）。`publisher` 为发布插件 id；Effect 插件经 `EventHub.publish` 发布时内核无法归因，记为 `"anonymous"`。
+  - `PluginRegistry`：`load`（`PluginLoader.load` + 结构/manifest 校验，已加载的模块不再记录）、`setup`（激活：plain 插件的 `setup()` / Effect 插件的 layer 构建）、`stop`（关闭插件 Scope）。`at` 为阶段开始时间，`durationMs` 为阶段耗时。
+- **容量**：环形缓冲，缺省 1000 条（`createKernel({ activity: { capacity } })`，`0` 关闭记录）。`event` 条目**保留 payload 引用**（不复制），用于观察者展示；这是与死信（不保留 payload）的有意区别，因此读取活动流需要授权（见下）。
+- **观察**：`KernelView.observe(cb, { replay })`——`replay: true` 先同步回放缓冲区中的历史，再推送新记录；观察者回调抛错被吞掉并记日志，不影响内核。
+- **授权**：活动流包含任意插件之间传递的数据，内核不直接向插件暴露它。宿主可把它投影进自己的 capability（如 DOM 宿主的 `PluginManager.observe`，需 `read` 授权并写审计 `pluginManager:observe`），由 `PermissionPolicy` 决定哪些插件可以读取。
+
+### 10.11 与 v3 的差异
+
+| v3                             | v4                                                           |
+| ------------------------------ | ------------------------------------------------------------ |
+| Registry 操作无互斥            | 每插件读写锁 + 字典序多锁                                    |
+| 插件 Scope fork 自 layer scope | 独立 Scope + reverse-Kahn 有序停机                           |
+| bootstrap 任一失败即整体失败   | 逐插件 `failed`，返回 `BootstrapReport`                      |
+| 运行期异常逃逸到宿主           | guard 归因 + 监管器重启 + 熔断隔离                           |
+| `dependencies: PluginID[]`     | `{ id, range }` + `DependencyVersionMismatch`                |
+| manifest 无版本                | `sdkVersion` + 兼容窗口检查                                  |
+| `perm: guest/admin`            | 按 capability 的 `read/write` + 按服务 key 的 provide + 审计 |
+| `PubSub.unbounded`             | 每订阅者有界队列 + 策略 + 死信；校验缺省开启                 |
+| 无插件配置                     | `configSchema` + `setup(api, config)` + `reconfigure`        |
+| `InstallStore` 只存 ID 集合    | 期望态记录 + durable `fromKeyValue` + 插件 `Storage` 能力    |
+| 无可观测性                     | span / 注解日志 / 指标 / JSON 诊断导出 / 活动流              |
 
 ---
 
@@ -815,15 +939,25 @@ export interface Diagnostics {
 
 ```ts
 export interface DomFacade {
-  mount(slot: Slot, render: (host: HTMLElement) => Cleanup | void, weight?: number): Cleanup; // write
-  provideSlot(slot: Slot, el: HTMLElement): Cleanup;                                        // write，审计
-  slots(): ReadonlyArray<Slot>;                                                               // read
-  head: { addMeta(attrs: Record<string, string>): Cleanup; addStyle(css: string): Cleanup };  // write
+  mount(
+    slot: Slot,
+    render: (host: HTMLElement) => Cleanup | void,
+    weight?: number,
+  ): Cleanup; // write
+  provideSlot(slot: Slot, el: HTMLElement): Cleanup; // write，审计
+  slots(): ReadonlyArray<Slot>; // read
+  head: {
+    addMeta(attrs: Record<string, string>): Cleanup;
+    addStyle(css: string): Cleanup;
+  }; // write
 }
-export const DomLive: (doc?: Document, opts?: { root?: HTMLElement }) => Layer.Layer<'dom'>;
+export const DomLive: (
+  doc?: Document,
+  opts?: { root?: HTMLElement },
+) => Layer.Layer<"dom">;
 
 // Slot 是 Effect Brand 品牌字符串，裸字符串不能赋给它
-export type Slot = string & Brand.Brand<'Slot'>;
+export type Slot = string & Brand.Brand<"Slot">;
 export const defineSlot = Brand.nominal<Slot>();
 export const RootSlot: Slot; // 宿主预置
 ```
@@ -839,34 +973,72 @@ export const RootSlot: Slot; // 宿主预置
 
 **存储**：插件私有 KV 用 sdk 的 `Storage` capability + 内核 `PluginStorageLive`；宿主只提供 `localStorageKeyValue()`（`local-storage.ts`），它同时支撑 `InstallStore.fromKeyValue`。
 
-**远程插件**：`EsmPluginLoader`（`esm-loader.ts`，见 §10.4）。
+**Html**（`html-capability.ts`）：`trust(raw): TrustedHtml`（write，审计）——经 DOMPurify 去除脚本、事件属性、`javascript:` URL，返回冻结且不可伪造（模块私有 `WeakSet` 登记）的对象；渲染方只对 `isTrustedHtml(x)` 为真的值使用 `innerHTML`，普通字符串一律按文本处理。DOMPurify 报告环境不受支持时退化为整体转义。
+
+**PluginManager**（`plugin-manager-capability.ts`）：让被授权的插件管理其他插件，是活动流（§10.10）在 DOM 宿主中的投影。
+
+```ts
+export interface PluginManagerFacade {
+  // read
+  list(): ReadonlyArray<PluginInfo>; // RegistrySnapshot 的纯数据投影
+  subscribe(cb: () => void): Cleanup; // 状态变化
+  observe(cb: (a: Activity) => void, opts?: { replay?: boolean }): Cleanup; // 审计 pluginManager:observe
+  diagnostics(): Promise<Diagnostics>;
+  catalog(): ReadonlyArray<PluginCatalogEntry>; // 宿主登记的可安装插件元数据（市场数据源）
+  // write（审计）
+  install(id): Promise<void>;
+  uninstall(id): Promise<void>;
+  enable(id): Promise<void>;
+  disable(id): Promise<void>;
+}
+export const PluginManagerLive: (
+  view: () => KernelView,
+  catalog?: ReadonlyArray<PluginCatalogEntry>,
+) => Layer.Layer<"pluginManager">;
+```
+
+- capabilityLayer 先于 kernel 构造，故以 getter 延迟取得 `KernelView`。
+- 插件不能 `disable` / `uninstall` 自身（在自身回调中关闭自身 Scope 会自锁），直接 reject。
+- `subscribe` / `observe` 的订阅随插件 Scope 释放。
+
+**加载器**：随应用打包的插件用 `LazyPluginLoader`（`lazy-loader.ts`）——目录项为 `() => import(...)`，打包器据此拆分 chunk，只在 install / bootstrap 恢复时加载；远程插件用 `EsmPluginLoader`（`esm-loader.ts`，见 §10.4）。
 
 **组装**（`apps/blog/src/main.ts`）：
 
 ```ts
 const kv = localStorageKeyValue();
 const kernel = createKernel({
-  capabilities: [Dom, Router, Storage],
-  capabilityLayer: Layer.mergeAll(DomLive(document), RouterLive(window), PluginStorageLive.pipe(Layer.provide(kv))),
-  loader: PluginLoader.fromMap(new Map(builtins.map(p => [p.manifest.id, p]))),
+  capabilities: [Dom, Router, Storage, PluginManager, Html],
+  capabilityLayer: Layer.mergeAll(
+    DomLive(document),
+    RouterLive(window),
+    HtmlLive(window),
+    PluginStorageLive.pipe(Layer.provide(kv)),
+    PluginManagerLive(() => kernel.view, catalog),
+  ),
+  loader: LazyPluginLoader(new Map(plugins.map((p) => [p.id, p.load]))),
   store: InstallStore.fromKeyValue.pipe(Layer.provide(kv)),
 });
-await kernel.bootstrap();                 // 按期望态恢复
-// 首次访问：安装 store 中尚无记录的内置插件
+await kernel.bootstrap(); // 按期望态恢复
+// 首次访问：按依赖顺序安装 builtin 插件（chunk 预先并行下载）
 ```
 
 **插件**（`apps/blog/src/plugins`）：每个插件一个目录——
 
 ```
 plugins/<name>/
-  index.ts   插件定义（manifest + setup 编排），只被 plugins/index.ts import
-  api.ts     对外契约（服务 Token / Slot / 插件 id，只有类型与常量）；其他插件只能 import 它
+  index.ts   插件定义（manifest + setup 编排），只被 plugins/index.ts 以 import() 引用
+  api.ts     对外契约（服务 Token / Slot / Topic / 插件 id，只有类型与常量）；其他插件只能 import 它
   *.ts(x)    内部实现，不得跨插件 import
 ```
 
-- `shell`（`[Dom, Router]`）：在 `RootSlot` 中搭骨架，提供 `ShellSlots`（`shell/api.ts`），站内链接 `a[data-link]` 交给路由。
-- `content`（`[Dom, Router]`）：按路由把 React 页面渲染进 `ShellSlots.main`——React 只出现在插件内部；提供 `content.selection` 服务（`content/api.ts`），外部可读取/订阅正文选区（`live` 实时 / 缺省稳定后）。
-- `highlight`（`[Dom, Router]`，依赖 `content ^1.0.0`）：消费 `content.selection`，用 CSS Custom Highlight API 模拟选区（浅色）并把选中文本标为高亮（稍深），不改动 DOM。
+`plugins/index.ts` 是插件目录：每项 `{ id, load, builtin, name, version, description }`，只静态 import 各插件的 `api.ts`。
+
+- `shell`（`[Dom, Router]`，builtin）：在 `RootSlot` 中搭骨架，提供 `ShellSlots` 与 `shell.footerNote` 服务（脚注，按 `order` 编号）；站内链接 `a[data-link]` 交给路由；非 Entry 路由隐藏 footer。
+- `content`（`[Dom, Router, Html]`，builtin，依赖 `shell ^1.1.0`）：按路由把 React 页面渲染进 `ShellSlots.main`；提供 `content.noteService`（为信件文字添加笔记，按出现位置连续编号并同步到脚注）与 `content.square.click` 事件；`/blog` 拉取远程文章并经 `Html` 净化。
+- `plugin-manager`（`[PluginManager]`，builtin）：订阅 `content.square.click`——devtools 已安装则打开面板；否则若 about / blog / weather 均已启用则安装并打开 devtools；否则安装这批插件。
+- `about` / `blog` / `weather`（按需，依赖 `content ^1.0.0`）：启用时添加笔记、停用时移除；blog 的笔记含链接（`Html`），weather 乐观插入占位后更新为 Open-Meteo 查询结果，查询失败时移除。
+- `devtools`（`[Dom, PluginManager, Storage]`，按需；Storage 保存抽屉高度与当前面板）：仿 Chrome DevTools 的底部抽屉，独立挂在 `RootSlot`（不依赖 shell）；面板 Plugins（依赖树与启停；内核的 `disable` 在仍有已启用依赖者时返回 `DependentsActive`，因此由 devtools 按依赖顺序先停用依赖者，重新启用时按逆序恢复）/ Console（活动流中的事件）/ Network（生命周期阶段耗时）/ Application（安装记录、审计）/ Market（目录中未安装的插件）。样式复用 chrome-devtools-frontend 的设计 tokens 与图标（BSD-3-Clause，随源码保留声明），组件为自建 Web Components（Shadow DOM 隔离站点样式）。配色与 Chrome「Match Chrome color theme」同源：Chrome 以浏览器主题色经 Material TonalSpot 生成 `--color-ref-*` 注入 DevTools，tokens 中的数值只是缺省值；页面读不到浏览器主题色，devtools 以可配置的种子色（缺省 `#01696f`，存于 Storage）经同一算法生成调色板。
 
 空白 HTML 只需 `<script type="module" src="/src/main.ts">`。
 

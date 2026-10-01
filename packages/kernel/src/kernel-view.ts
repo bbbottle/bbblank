@@ -3,17 +3,23 @@
  * `subscribe`/`snapshot` 恰好是 `useSyncExternalStore` 的签名，
  * 也适配 Lit `@lit/task`、Svelte store、纯 DOM 手动刷新。
  */
-import { Effect, Fiber, ManagedRuntime, Stream, SubscriptionRef } from 'effect';
-import type { PluginID } from '@bbblank/sdk';
-import type { EventHub, ServiceRegistry } from '@bbblank/sdk';
-import { PluginRegistry } from './plugin-registry.js';
-import type { Diagnostics, KernelOptions, RegistrySnapshot } from './plugin-registry.js';
-import type { AuditLog } from './audit-log.js';
-import type { CapabilityBroker } from './capability-broker.js';
-import type { EventBus } from './event-hub.js';
-import type { PermissionPolicy } from './permission-policy.js';
-import type { PluginLoader } from './plugin-loader.js';
-import type { InstallStore } from './install-store.js';
+import { Effect, Fiber, ManagedRuntime, Stream, SubscriptionRef } from "effect";
+import type { PluginID } from "@bbblank/sdk";
+import type { EventHub, ServiceRegistry } from "@bbblank/sdk";
+import { PluginRegistry } from "./plugin-registry.js";
+import type {
+  Diagnostics,
+  KernelOptions,
+  RegistrySnapshot,
+} from "./plugin-registry.js";
+import { ActivityLog } from "./activity-log.js";
+import type { Activity } from "./activity-log.js";
+import type { AuditLog } from "./audit-log.js";
+import type { CapabilityBroker } from "./capability-broker.js";
+import type { EventBus } from "./event-hub.js";
+import type { PermissionPolicy } from "./permission-policy.js";
+import type { PluginLoader } from "./plugin-loader.js";
+import type { InstallStore } from "./install-store.js";
 
 /** runtime 内的服务环境；ManagedRuntime 的 R 逆变，更大的 runtime 可赋给它 */
 export type KernelEnv =
@@ -26,6 +32,7 @@ export type KernelEnv =
   | PluginLoader
   | InstallStore
   | AuditLog
+  | ActivityLog
   | KernelOptions;
 
 export interface KernelView {
@@ -33,34 +40,63 @@ export interface KernelView {
   readonly subscribe: (cb: () => void) => () => void;
   readonly enable: (id: PluginID) => Promise<void>;
   readonly disable: (id: PluginID) => Promise<void>;
-  readonly install: (id: PluginID, opts?: { readonly config?: unknown }) => Promise<void>;
+  readonly install: (
+    id: PluginID,
+    opts?: { readonly config?: unknown },
+  ) => Promise<void>;
   readonly uninstall: (id: PluginID) => Promise<void>;
   readonly reconfigure: (id: PluginID, config: unknown) => Promise<void>;
   /** 宿主把平台级未捕获异常归因到插件后上报（§10.2） */
   readonly reportFault: (id: PluginID, cause: unknown) => void;
   /** 可 JSON.stringify 的诊断导出（§10.9） */
   readonly diagnostics: () => Promise<Diagnostics>;
+  /** 活动流（§10.10）：replay 时先同步回放缓冲区历史，再推送新记录；返回注销函数 */
+  readonly observe: (
+    cb: (a: Activity) => void,
+    opts?: { readonly replay?: boolean },
+  ) => () => void;
 }
 
 export const makeKernelView = (
-  rt: ManagedRuntime.ManagedRuntime<KernelEnv, never>
+  rt: ManagedRuntime.ManagedRuntime<KernelEnv, never>,
 ): KernelView => {
   const reg = rt.runSync(Effect.service(PluginRegistry));
+  const activity = rt.runSync(Effect.service(ActivityLog));
   return {
+    observe: (cb, opts) => {
+      // 回放与注册之间没有异步间隙，不会漏掉或重复记录
+      if (opts?.replay) {
+        for (const a of rt.runSync(activity.recent)) {
+          try {
+            cb(a);
+          } catch (e) {
+            rt.runSync(Effect.logWarning("activity observer threw", e));
+          }
+        }
+      }
+      return rt.runSync(activity.observe(cb));
+    },
     snapshot: () => rt.runSync(SubscriptionRef.get(reg.state)),
-    subscribe: cb => {
+    subscribe: (cb) => {
       const fiber = rt.runFork(
-        SubscriptionRef.changes(reg.state).pipe(Stream.runForEach(() => Effect.sync(cb)))
+        SubscriptionRef.changes(reg.state).pipe(
+          Stream.runForEach(() => Effect.sync(cb)),
+        ),
       );
       return () => {
         rt.runFork(Fiber.interrupt(fiber));
       };
     },
-    enable: id => rt.runPromise(reg.enable(id)),
-    disable: id => rt.runPromise(reg.disable(id)),
+    enable: (id) => rt.runPromise(reg.enable(id)),
+    disable: (id) => rt.runPromise(reg.disable(id)),
     install: (id, opts) =>
-      rt.runPromise(reg.install(id, { manual: true, ...(opts?.config === undefined ? {} : { config: opts.config }) })),
-    uninstall: id => rt.runPromise(reg.uninstall(id)),
+      rt.runPromise(
+        reg.install(id, {
+          manual: true,
+          ...(opts?.config === undefined ? {} : { config: opts.config }),
+        }),
+      ),
+    uninstall: (id) => rt.runPromise(reg.uninstall(id)),
     reconfigure: (id, config) => rt.runPromise(reg.reconfigure(id, config)),
     reportFault: reg.reportFault,
     diagnostics: () => rt.runPromise(reg.diagnostics),

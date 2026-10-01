@@ -8,17 +8,20 @@
  * - 其余文件：插件内部实现，不得被其他插件 import
  *
  * 本文件只能静态 import 各插件的 `api.ts`；静态 import `index.ts` 会把插件实现并回入口 chunk。
+ * name / version / description 是不加载插件代码即可展示的元数据（devtools 市场的数据源），
+ * 须与插件 manifest 保持一致（内核加载时以 manifest 为准）。
  */
 import type { PluginID } from "@bbblank/sdk";
-import type { PluginImport } from "@bbblank/host-dom";
+import type { PluginCatalogEntry, PluginImport } from "@bbblank/host-dom";
 import { AboutPluginId } from "./about/api";
 import { BlogPluginId } from "./blog/api";
 import { ContentPluginId } from "./content/api";
+import { DevtoolsPluginId } from "./devtools/api";
 import { PluginManagerPluginId } from "./plugin-manager/api";
 import { ShellPluginId } from "./shell/api";
 import { WeatherPluginId } from "./weather/api";
 
-export interface PluginEntry {
+export interface PluginEntry extends PluginCatalogEntry {
   readonly id: PluginID;
   readonly load: PluginImport;
   /** 首次访问时自动安装；否则只在运行时按需安装（如经 plugin-manager） */
@@ -27,14 +30,61 @@ export interface PluginEntry {
 
 /** builtin 插件按依赖顺序排列：首次访问时依次安装 */
 export const plugins: ReadonlyArray<PluginEntry> = [
-  { id: ShellPluginId, builtin: true, load: () => import("./shell").then((m) => m.shell) },
-  { id: ContentPluginId, builtin: true, load: () => import("./content").then((m) => m.content) },
+  {
+    id: ShellPluginId,
+    name: "Shell",
+    version: "1.1.0",
+    description: "页面骨架、挂载点、站内路由与脚注。",
+    builtin: true,
+    load: () => import("./shell").then((m) => m.shell),
+  },
+  {
+    id: ContentPluginId,
+    name: "Content",
+    version: "1.0.0",
+    description: "按路由渲染信件与文章列表，提供内容笔记服务。",
+    builtin: true,
+    load: () => import("./content").then((m) => m.content),
+  },
   {
     id: PluginManagerPluginId,
+    name: "Plugin Manager",
+    version: "1.0.0",
+    description: "响应信件方块的点击，安装插件或打开 devtools。",
     builtin: true,
     load: () => import("./plugin-manager").then((m) => m.pluginManager),
   },
-  { id: AboutPluginId, builtin: false, load: () => import("./about").then((m) => m.about) },
-  { id: BlogPluginId, builtin: false, load: () => import("./blog").then((m) => m.blog) },
-  { id: WeatherPluginId, builtin: false, load: () => import("./weather").then((m) => m.weather) },
+  {
+    id: AboutPluginId,
+    name: "About",
+    version: "1.0.0",
+    description: "为「十年前的我」添加作者笔记。",
+    builtin: false,
+    load: () => import("./about").then((m) => m.about),
+  },
+  {
+    id: BlogPluginId,
+    name: "Blog",
+    version: "1.0.0",
+    description: "为「组装好的文字」添加指向 /blog 的笔记。",
+    builtin: false,
+    load: () => import("./blog").then((m) => m.blog),
+  },
+  {
+    id: WeatherPluginId,
+    name: "Weather",
+    version: "1.0.0",
+    description: "查询长沙今日天气（Open-Meteo），为落款「长沙」添加笔记。",
+    builtin: false,
+    load: () => import("./weather").then((m) => m.weather),
+  },
+  {
+    id: DevtoolsPluginId,
+    name: "DevTools",
+    version: "1.0.0",
+    description:
+      "仿 Chrome DevTools 的插件面板：依赖树、活动流、耗时、审计与市场。",
+    builtin: false,
+    load: () => import("./devtools").then((m) => m.devtools),
+  },
 ];

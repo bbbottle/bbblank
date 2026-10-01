@@ -34,7 +34,15 @@ const kernel = createKernel({
     RouterLive(window),
     HtmlLive(window),
     PluginStorageLive.pipe(Layer.provide(kv)),
-    PluginManagerLive((): KernelView => kernel.view),
+    PluginManagerLive(
+      (): KernelView => kernel.view,
+      plugins.map(({ id, name, version, description }) => ({
+        id,
+        name,
+        version,
+        description,
+      })),
+    ),
   ),
   loader: LazyPluginLoader(new Map(plugins.map((p) => [p.id, p.load]))),
   store: InstallStore.fromKeyValue.pipe(Layer.provide(kv)),

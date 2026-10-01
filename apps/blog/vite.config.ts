@@ -17,6 +17,10 @@ export default defineConfig({
   },
   build: {
     rolldownOptions: {
+      treeshake: {
+        // @material/material-color-utilities 未声明 sideEffects，缺省会整包打入（devtools 只用到调色板生成）
+        moduleSideEffects: (id) => (/[\\/]@material[\\/]material-color-utilities[\\/]/.test(id) ? false : undefined),
+      },
       output: {
         codeSplitting: {
           groups: [
