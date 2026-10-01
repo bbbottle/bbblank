@@ -38,3 +38,12 @@ export const NoteChangeTopic = defineTopic(
   "shell.footerNotes.change",
   Schema.Array(NoteSchema),
 );
+
+/**
+ * 脚注中可交互的元素：TrustedHtml 内容里带 data-action 的元素被点击（或聚焦后按 Enter）时发布。
+ * noteId 为脚注所属笔记的 id，action 为 data-action 的值；由笔记的写入方订阅并解释。
+ */
+export const FootnoteActionTopic = defineTopic(
+  "shell.footnote.action",
+  Schema.Struct({ noteId: Schema.Number, action: Schema.String }),
+);

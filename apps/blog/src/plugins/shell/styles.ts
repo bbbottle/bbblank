@@ -11,6 +11,8 @@ export const css = `
   .shell > footer { padding-bottom: 2rem; border-block-start-color: #f1f1f1 !important }
   a { color: var(--link, #0969da); text-decoration: none; }
   a:hover { text-decoration: underline; }
+  /* 脚注中的可交互元素（FootnoteActionTopic）；选择器需高于 heti 的 .heti abbr[title]（cursor: help） */
+  .shell.heti > footer [data-action] { cursor: pointer; }
 /*!
  * Project: Heti
  * URL: https://github.com/sivan/heti

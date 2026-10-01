@@ -60,7 +60,7 @@ export const plugins: ReadonlyArray<PluginEntry> = [
   {
     id: AboutPluginId,
     name: "About",
-    version: "1.0.0",
+    version: "1.1.0",
     description: "关于「我」。",
     builtin: false,
     load: () => import("./about").then((m) => m.about),

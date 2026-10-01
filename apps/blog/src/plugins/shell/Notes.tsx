@@ -1,13 +1,34 @@
 import { useEffect, useState } from "react";
-import { FooterNoteService, Note, NoteChangeTopic } from "./api";
+import type { KeyboardEvent, MouseEvent } from "react";
+import { FootnoteActionTopic, FooterNoteService, Note, NoteChangeTopic } from "./api";
 import { PluginEventsBus } from "@bbblank/sdk";
 import { isTrustedHtml } from "@bbblank/host-dom";
 
-export const NoteItem = ({ content, order }: Note) =>
-  isTrustedHtml(content) ? (
-    <li value={order} dangerouslySetInnerHTML={{ __html: content.html }} />
+/** 把脚注 HTML 中 [data-action] 元素的点击 / Enter 转为 FootnoteActionTopic */
+const actionHandlers = (noteId: number, evtBus: PluginEventsBus) => {
+  const fire = (e: MouseEvent | KeyboardEvent) => {
+    const el = (e.target as Element).closest<HTMLElement>("[data-action]");
+    if (!el || !e.currentTarget.contains(el)) return;
+    e.preventDefault();
+    evtBus.emit(FootnoteActionTopic, { noteId, action: el.dataset.action ?? "" });
+  };
+  return {
+    onClick: fire,
+    onKeyDown: (e: KeyboardEvent) => {
+      if (e.key === "Enter") fire(e);
+    },
+  };
+};
+
+export const NoteItem = ({ note, evtBus }: { note: Note; evtBus: PluginEventsBus }) =>
+  isTrustedHtml(note.content) ? (
+    <li
+      value={note.order}
+      dangerouslySetInnerHTML={{ __html: note.content.html }}
+      {...actionHandlers(note.id, evtBus)}
+    />
   ) : (
-    <li value={order}>{content}</li>
+    <li value={note.order}>{note.content}</li>
   );
 
 const byOrder = (a: Note, b: Note) =>
@@ -40,7 +61,7 @@ export const Notes = ({
   return (
     <ol>
       {[...notes].sort(byOrder).map((n) => (
-        <NoteItem key={n.id} {...n} />
+        <NoteItem key={n.id} note={n} evtBus={evtBus} />
       ))}
     </ol>
   );
