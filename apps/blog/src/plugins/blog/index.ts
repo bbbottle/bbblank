@@ -1,27 +1,40 @@
 /**
- * blog —— 按需安装的插件：启用时为正文添加指向 /blog 的笔记，停用/卸载时移除。
- * 笔记含链接，需经 Html capability（write）生成 TrustedHtml，否则脚注只会按纯文本渲染。
+ * blog —— 按需安装的插件：提供 /blog 页面（经 content.routes 登记、内容挂入 routeSlot），
+ * 并为正文添加指向 /blog 的笔记。停用/卸载时笔记与路由一并移除；若正处于 /blog，content 导航回 /。
+ * 笔记含链接、页面含远程 HTML，均需经 Html capability（write）生成 TrustedHtml。
  */
 import { definePlugin } from "@bbblank/sdk";
 import type { SemVer } from "@bbblank/sdk";
-import { Html } from "@bbblank/host-dom";
-import { ContentNoteService, ContentPluginId } from "../content/api";
+import { Dom, Html } from "@bbblank/host-dom";
+import { ContentNoteService, ContentPluginId, ContentRoutes, routeSlot } from "../content/api";
+import type { Note } from "../shell/api";
 import { BlogPluginId } from "./api";
-import { Note } from "../shell/api";
+import { renderBlog } from "./page";
+
+const ROUTE = "/blog";
 
 export const blog = definePlugin({
   manifest: {
     id: BlogPluginId,
     name: "Blog",
-    version: "1.0.0" as SemVer,
-    dependencies: [{ id: ContentPluginId, range: "^1.0.0" }],
+    version: "1.1.0" as SemVer,
+    // content.routes 自 content 1.1.0 起提供
+    dependencies: [{ id: ContentPluginId, range: "^1.1.0" }],
   },
-  capabilities: [Html],
+  capabilities: [Html, Dom],
   setup: async (api) => {
-    const notes = await api.services.get(ContentNoteService);
+    const { html, dom } = api.caps;
+    const [notes, routes] = await Promise.all([
+      api.services.get(ContentNoteService),
+      api.services.get(ContentRoutes),
+    ]);
+
+    api.lifecycle.addCleanup(routes.register(ROUTE));
+    dom.mount(routeSlot(ROUTE), (host) => renderBlog(host, html));
+
     const note: Readonly<Note> = {
       id: 2,
-      content: api.caps.html.trust('<a href="/blog" data-link>blog</a>'),
+      content: html.trust(`<a href="${ROUTE}" data-link>blog</a>`),
     };
     notes.upsertNote({ contentStr: "组装好的文字", note });
     return () => notes.delNote(note.id);

@@ -1035,9 +1035,9 @@ plugins/<name>/
 `plugins/index.ts` 是插件目录：每项 `{ id, load, builtin, name, version, description }`，只静态 import 各插件的 `api.ts`。
 
 - `shell`（`[Dom, Router]`，builtin）：在 `RootSlot` 中搭骨架，提供 `ShellSlots` 与 `shell.footerNote` 服务（脚注，按 `order` 编号）；站内链接 `a[data-link]` 交给路由；非 Entry 路由隐藏 footer。
-- `content`（`[Dom, Router, Html]`，builtin，依赖 `shell ^1.1.0`）：按路由把 React 页面渲染进 `ShellSlots.main`；提供 `content.noteService`（为信件文字添加笔记，按出现位置连续编号并同步到脚注）与 `content.square.click` 事件；`/blog` 拉取远程文章并经 `Html` 净化。
+- `content`（`[Dom, Router]`，builtin，依赖 `shell ^1.1.0`）：按路由把 React 页面渲染进 `ShellSlots.main`；提供 `content.noteService`（为信件文字添加笔记，按出现位置连续编号并同步到脚注）、`content.routes`（外部插件登记页面路由：路由激活时 content 把页面区域提供为 `routeSlot(path)`，登记方经 `Dom.mount` 挂载内容；登记方停用时路由消失，若正处于该路由则导航回 `/`）与 `content.square.click` 事件。content 只内置自身页面（`/` 等），未登记的路径显示 404。
 - `plugin-manager`（`[PluginManager]`，builtin）：订阅 `content.square.click`——devtools 已安装则打开面板；否则若 about / blog / weather 均已启用则安装 devtools 及其缺省面板插件并打开；否则安装这批插件。
-- `about` / `blog` / `weather`（按需，依赖 `content ^1.0.0`）：启用时添加笔记、停用时移除；blog 的笔记含链接（`Html`），weather 乐观插入占位后更新为 Open-Meteo 查询结果，查询失败时移除。
+- `about` / `blog` / `weather`（按需，依赖 `content ^1.0.0`）：启用时添加笔记、停用时移除；blog 另经 `content.routes` 提供 `/blog` 页面（拉取远程文章并经 `Html` 净化，依赖 `content ^1.1.0`），停用后页面、路由与笔记一并消失；blog 的笔记含链接（`Html`），weather 乐观插入占位后更新为 Open-Meteo 查询结果，查询失败时移除。
 - `devtools`（`[Dom, PluginManager, Storage]`，按需；Storage 保存抽屉高度与当前面板）：仿 Chrome DevTools 的底部抽屉，独立挂在 `RootSlot`（不依赖 shell）；内置 Plugins 面板（依赖树与启停；内核的 `disable` 在仍有已启用依赖者时返回 `DependentsActive`，因此由 devtools 按依赖顺序先停用依赖者，重新启用时按逆序恢复）与 Market 面板（插件目录与安装；作为安装入口不做成可卸载的面板插件，否则卸载后页面内再无安装途径），其余面板由面板插件提供（见下）。样式复用 chrome-devtools-frontend 的设计 tokens 与图标（BSD-3-Clause，随源码保留声明），组件为自建 Web Components（Shadow DOM 隔离站点样式）。配色与 Chrome「Match Chrome color theme」同源：Chrome 以浏览器主题色经 Material TonalSpot 生成 `--color-ref-*` 注入 DevTools，tokens 中的数值只是缺省值；页面读不到浏览器主题色，devtools 以可配置的种子色（缺省 `#01696f`，存于 Storage）经同一算法生成调色板。
 - `devtools-console` / `devtools-network` / `devtools-application`（`[Dom, PluginManager]`，依赖 `devtools ^1.0.0`）：面板插件，分别是活动流中的事件、生命周期阶段耗时、安装记录与审计。plugin-manager 首次安装 devtools 时一并安装它们；之后可在 Market 中单独卸载、安装。
 

@@ -1,20 +1,19 @@
 /** content 的页面组件（React 只出现在插件内部，内核与宿主对此无感知） */
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactElement } from "react";
-import type { PluginEventsBus } from "@bbblank/sdk";
-import type { HtmlFacade, TrustedHtml } from "@bbblank/host-dom";
+import type { Cleanup, PluginEventsBus } from "@bbblank/sdk";
 import { ContentNoteChangeTopic, SquareClickTopic } from "./api";
 import type { ContentNote, IContentNoteService } from "./api";
 import { annotate, distribute, letterFields } from "./annotate";
-import { fetchPosts } from "./posts";
-import type { Post } from "./posts";
-
-type routes = "/" | "/blog" | "/notes" | "/photos" | string;
+import type { Routes } from "./routes";
 
 export interface PageDeps {
   readonly noteService: IContentNoteService;
   readonly events: PluginEventsBus;
-  readonly html: HtmlFacade;
+  /** 外部插件登记的路由 */
+  readonly routes: Routes;
+  /** 把页面区域提供为 routeSlot(path)，登记方经 Dom.mount 挂载页面内容 */
+  readonly provideRoute: (path: string, el: HTMLElement) => Cleanup;
 }
 
 const Square = ({
@@ -98,60 +97,6 @@ export const Entry = (deps: PageDeps) => {
   );
 };
 
-const RECENT_POSTS = 4;
-
-type RenderedPost = Omit<Post, "content"> & { readonly content: TrustedHtml };
-
-type PostsState =
-  | { readonly kind: "loading" }
-  | { readonly kind: "error"; readonly message: string }
-  | { readonly kind: "ready"; readonly posts: ReadonlyArray<RenderedPost> };
-
-export const Blog = ({ html }: PageDeps) => {
-  const [state, setState] = useState<PostsState>({ kind: "loading" });
-
-  useEffect(() => {
-    const ctrl = new AbortController();
-    fetchPosts(RECENT_POSTS, ctrl.signal).then(
-      (posts) =>
-        setState({
-          kind: "ready",
-          posts: posts.map((p) => ({ ...p, content: html.trust(p.content) })),
-        }),
-      (e: unknown) => {
-        if (!ctrl.signal.aborted)
-          setState({ kind: "error", message: String(e) });
-      },
-    );
-    return () => ctrl.abort();
-  }, [html]);
-
-  if (state.kind === "loading") return;
-  if (state.kind === "error") return <p>文章加载失败：{state.message}</p>;
-  return (
-    <section>
-      {state.posts.map((p, i) => (
-        <Fragment key={p.id}>
-          {i > 0 && <hr />}
-          <article>
-            <h3>{p.title}</h3>
-            <p className="heti-meta heti-small">
-              <time dateTime={p.createdAt}>{p.createdAt.slice(0, 10)}</time>
-            </p>
-            <div dangerouslySetInnerHTML={{ __html: p.content.html }} />
-          </article>
-        </Fragment>
-      ))}
-      <hr />
-      <p className="heti-meta heti-small">
-        <a data-link href="/">
-          <Square />
-        </a>
-      </p>
-    </section>
-  );
-};
-
 export const NotFound = ({ path }: { readonly path: string }) => (
   <article>
     <h1>404</h1>
@@ -161,12 +106,29 @@ export const NotFound = ({ path }: { readonly path: string }) => (
   </article>
 );
 
-const PAGES: Map<routes, (deps: PageDeps) => ReactElement> = new Map([
+/** 登记路由的页面区域：挂载期间提供为 routeSlot(path) */
+const RouteHost = ({ path, provide }: { readonly path: string; readonly provide: PageDeps["provideRoute"] }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const off = provide(path, ref.current!);
+    return () => void off();
+  }, [path, provide]);
+  return <div ref={ref} />;
+};
+
+/** content 自身的页面；其余路径由外部插件经 content.routes 登记 */
+const PAGES: ReadonlyMap<string, (deps: PageDeps) => ReactElement> = new Map([
   ["/", (deps: PageDeps) => <Entry {...deps} />],
-  ["/blog", (deps: PageDeps) => <Blog {...deps} />],
   ["/notes", () => <div>Hi.</div>],
   ["/photos", () => <div>Hi.</div>],
 ]);
 
+export const builtinPaths: ReadonlySet<string> = new Set(PAGES.keys());
+
 export const pageFor = (path: string, deps: PageDeps): ReactElement =>
-  PAGES.get(path)?.(deps) ?? <NotFound path={path} />;
+  PAGES.get(path)?.(deps) ??
+  (deps.routes.has(path) ? (
+    <RouteHost key={path} path={path} provide={deps.provideRoute} />
+  ) : (
+    <NotFound path={path} />
+  ));

@@ -44,8 +44,8 @@ export const plugins: ReadonlyArray<PluginEntry> = [
   {
     id: ContentPluginId,
     name: "Content",
-    version: "1.0.0",
-    description: "按路由渲染信件与文章列表，提供内容笔记服务。",
+    version: "1.1.0",
+    description: "按路由渲染信件，提供内容笔记与页面路由登记服务。",
     builtin: true,
     load: () => import("./content").then((m) => m.content),
   },
@@ -68,7 +68,7 @@ export const plugins: ReadonlyArray<PluginEntry> = [
   {
     id: BlogPluginId,
     name: "Blog",
-    version: "1.0.0",
+    version: "1.1.0",
     description: "组装的文字。",
     builtin: false,
     load: () => import("./blog").then((m) => m.blog),
