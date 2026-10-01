@@ -1,7 +1,17 @@
 /** content 的页面组件（React 只出现在插件内部，内核与宿主对此无感知） */
+import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
+import type { PluginEventsBus } from "@bbblank/sdk";
+import { ContentNoteChangeTopic } from "./api";
+import type { ContentNote, IContentNoteService } from "./api";
+import { annotate } from "./annotate";
 
 type routes = "/" | "/notes" | "/photos" | string;
+
+export interface PageDeps {
+  readonly noteService: IContentNoteService;
+  readonly events: PluginEventsBus;
+}
 
 const Square = ({
   size = 12,
@@ -20,22 +30,53 @@ const Square = ({
   ></span>
 );
 
-export const Entry = () => {
+const useContentNotes = ({ noteService, events }: PageDeps) => {
+  const [notes, setNotes] = useState<ReadonlyArray<ContentNote>>(
+    noteService.listNotes,
+  );
+
+  useEffect(() => {
+    setNotes(noteService.listNotes());
+    const off = events.on(ContentNoteChangeTopic, setNotes);
+    return () => void off();
+  }, [noteService, events]);
+
+  return notes;
+};
+
+const Annotated = ({
+  text,
+  notes,
+}: {
+  readonly text: string;
+  readonly notes: ReadonlyArray<ContentNote>;
+}) => (
+  <>
+    {annotate(text, notes).map((s, i) =>
+      s.kind === "text" ? s.text : <sup key={`ref-${s.id}-${i}`}>[{s.id}]</sup>,
+    )}
+  </>
+);
+
+export const Entry = (deps: PageDeps) => {
+  const letter = deps.noteService.getLetter();
+  const notes = useContentNotes(deps);
+
   return (
     <article>
-      <p>你好：</p>
+      <p>{letter.openlings}</p>
       <p>
-        十年前的我会想在这里实现宇宙中最绚丽的动画，现在？也许只想留下一点利用咖啡时间组装好的文字，和手机最近拍到的照片。现在，开始珍惜刷牙、剪指甲、擦眼镜、喝水、走路、发呆、洗碗的时间。
+        <Annotated text={letter.body} notes={notes} />
       </p>
       <div className="signature" style={{ textAlign: "right" }}>
         <p style={{ display: "inline-flex", flexDirection: "column" }}>
           <span style={{ display: "inline-flex", alignItems: "center" }}>
-            <span>周</span>
+            <span>{letter.author}</span>
             <Square />
             <Square />
           </span>
-          <span>二零二六 九月三十</span>
-          <span>长沙</span>
+          <span>{letter.date}</span>
+          <span>{letter.address}</span>
         </p>
       </div>
     </article>
@@ -51,14 +92,11 @@ export const NotFound = ({ path }: { readonly path: string }) => (
   </article>
 );
 
-const PAGES: Map<routes, ReactElement> = new Map([
-  ["/", <Entry />],
-  ["/notes", <div>Hi.</div>],
-  ["/photos", <div>Hi.</div>],
+const PAGES: Map<routes, (deps: PageDeps) => ReactElement> = new Map([
+  ["/", (deps: PageDeps) => <Entry {...deps} />],
+  ["/notes", () => <div>Hi.</div>],
+  ["/photos", () => <div>Hi.</div>],
 ]);
 
-export const pageFor = (path: string): ReactElement => {
-  const notFound = <NotFound path={path} />;
-
-  return PAGES.get(path) ?? notFound;
-};
+export const pageFor = (path: string, deps: PageDeps): ReactElement =>
+  PAGES.get(path)?.(deps) ?? <NotFound path={path} />;

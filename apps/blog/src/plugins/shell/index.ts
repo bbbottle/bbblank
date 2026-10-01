@@ -3,9 +3,9 @@
  * 并把站内链接交给路由。
  */
 import { definePlugin } from "@bbblank/sdk";
-import type { PluginID, SemVer } from "@bbblank/sdk";
+import type { SemVer } from "@bbblank/sdk";
 import { Dom, RootSlot, Router } from "@bbblank/host-dom";
-import { FooterNote, ShellSlots } from "./api";
+import { FooterNote, ShellPluginId, ShellSlots } from "./api";
 import { buildLayout } from "./layout";
 import { interceptLinks } from "./link-router";
 import { css } from "./styles";
@@ -14,7 +14,7 @@ import { renderNotes } from "./renderer";
 
 export const shell = definePlugin({
   manifest: {
-    id: "shell" as PluginID,
+    id: ShellPluginId,
     name: "Shell",
     version: "1.1.0" as SemVer,
     services: { provide: [FooterNote.key] },

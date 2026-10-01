@@ -2,16 +2,18 @@
 import { createRoot } from "react-dom/client";
 import type { RouterFacade } from "@bbblank/host-dom";
 import { pageFor } from "./pages";
+import type { PageDeps } from "./pages";
 
 export const renderPages = (
   host: HTMLElement,
   router: RouterFacade,
+  deps: PageDeps,
   beforeRender?: () => void,
 ) => {
   const root = createRoot(host);
   const off = router.onChange((path) => {
     beforeRender?.();
-    root.render(pageFor(path));
+    root.render(pageFor(path, deps));
   });
   return async () => {
     await off();
