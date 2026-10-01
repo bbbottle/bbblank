@@ -8,6 +8,7 @@
  */
 import type { AnyPluginModule } from "@bbblank/sdk";
 import { about } from "./about";
+import { blog } from "./blog";
 import { content } from "./content";
 import { pluginManager } from "./plugin-manager";
 import { shell } from "./shell";
@@ -20,4 +21,4 @@ export const builtins: ReadonlyArray<AnyPluginModule> = [
 ];
 
 /** 随应用打包、可被加载，但只在运行时按需安装（如经 plugin-manager） */
-export const optionals: ReadonlyArray<AnyPluginModule> = [about];
+export const optionals: ReadonlyArray<AnyPluginModule> = [about, blog];

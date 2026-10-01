@@ -5,7 +5,7 @@
  */
 import { definePlugin } from "@bbblank/sdk";
 import type { SemVer } from "@bbblank/sdk";
-import { Dom, Router } from "@bbblank/host-dom";
+import { Dom, Html, Router } from "@bbblank/host-dom";
 import { FooterNote, ShellPluginId, ShellSlots } from "../shell/api";
 import { renderPages } from "./renderer";
 import { ContentNoteService, ContentPluginId } from "./api";
@@ -22,9 +22,10 @@ export const content = definePlugin({
     // 提供服务需要在 manifest 中声明（§10.5），否则 register 会抛 PermissionDenied
     services: { provide: [ContentNoteService.key] },
   },
-  capabilities: [Dom, Router],
+  // html：净化 /blog 拉取的远程文章 HTML
+  capabilities: [Dom, Router, Html],
   setup: (api) => {
-    const { dom, router } = api.caps;
+    const { dom, router, html } = api.caps;
 
     const noteService = createContentNoteService(letter, api.events, () =>
       api.services.get(FooterNote),
@@ -35,6 +36,7 @@ export const content = definePlugin({
       const stopRender = renderPages(host, router, {
         noteService,
         events: api.events,
+        html,
       });
       return async () => {
         await stopRender();

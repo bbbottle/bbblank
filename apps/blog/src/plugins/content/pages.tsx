@@ -1,16 +1,20 @@
 /** content 的页面组件（React 只出现在插件内部，内核与宿主对此无感知） */
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import type { PluginEventsBus } from "@bbblank/sdk";
+import type { HtmlFacade, TrustedHtml } from "@bbblank/host-dom";
 import { ContentNoteChangeTopic, SquareClickTopic } from "./api";
 import type { ContentNote, IContentNoteService } from "./api";
 import { annotate } from "./annotate";
+import { fetchPosts } from "./posts";
+import type { Post } from "./posts";
 
-type routes = "/" | "/notes" | "/photos" | string;
+type routes = "/" | "/blog" | "/notes" | "/photos" | string;
 
 export interface PageDeps {
   readonly noteService: IContentNoteService;
   readonly events: PluginEventsBus;
+  readonly html: HtmlFacade;
 }
 
 const Square = ({
@@ -91,6 +95,54 @@ export const Entry = (deps: PageDeps) => {
   );
 };
 
+const RECENT_POSTS = 4;
+
+type RenderedPost = Omit<Post, "content"> & { readonly content: TrustedHtml };
+
+type PostsState =
+  | { readonly kind: "loading" }
+  | { readonly kind: "error"; readonly message: string }
+  | { readonly kind: "ready"; readonly posts: ReadonlyArray<RenderedPost> };
+
+export const Blog = ({ html }: PageDeps) => {
+  const [state, setState] = useState<PostsState>({ kind: "loading" });
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    fetchPosts(RECENT_POSTS, ctrl.signal).then(
+      (posts) =>
+        setState({
+          kind: "ready",
+          posts: posts.map((p) => ({ ...p, content: html.trust(p.content) })),
+        }),
+      (e: unknown) => {
+        if (!ctrl.signal.aborted)
+          setState({ kind: "error", message: String(e) });
+      },
+    );
+    return () => ctrl.abort();
+  }, [html]);
+
+  if (state.kind === "loading") return;
+  if (state.kind === "error") return <p>文章加载失败：{state.message}</p>;
+  return (
+    <section>
+      {state.posts.map((p, i) => (
+        <Fragment key={p.id}>
+          {i > 0 && <hr />}
+          <article>
+            <h3>{p.title}</h3>
+            <p className="heti-meta heti-small">
+              <time dateTime={p.createdAt}>{p.createdAt.slice(0, 10)}</time>
+            </p>
+            <div dangerouslySetInnerHTML={{ __html: p.content.html }} />
+          </article>
+        </Fragment>
+      ))}
+    </section>
+  );
+};
+
 export const NotFound = ({ path }: { readonly path: string }) => (
   <article>
     <h1>404</h1>
@@ -102,6 +154,7 @@ export const NotFound = ({ path }: { readonly path: string }) => (
 
 const PAGES: Map<routes, (deps: PageDeps) => ReactElement> = new Map([
   ["/", (deps: PageDeps) => <Entry {...deps} />],
+  ["/blog", (deps: PageDeps) => <Blog {...deps} />],
   ["/notes", () => <div>Hi.</div>],
   ["/photos", () => <div>Hi.</div>],
 ]);

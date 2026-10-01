@@ -12,6 +12,9 @@ import { css } from "./styles";
 import { createFooterNoteService } from "./footer-note-service";
 import { renderNotes } from "./renderer";
 
+/** 脚注只属于 Entry（content 的 "/" 路由），其他页面隐藏 footer */
+const ENTRY_PATH = "/";
+
 export const shell = definePlugin({
   manifest: {
     id: ShellPluginId,
@@ -42,8 +45,13 @@ export const shell = definePlugin({
 
       const offLinks = interceptLinks(host, router.navigate);
 
+      const offRoute = router.onChange((path) => {
+        layout.footer.style.opacity = path !== ENTRY_PATH ? "0" : "1";
+      });
+
       return () => {
         offLinks();
+        void offRoute();
         void stopNotes();
         for (const off of offs) void off();
       };

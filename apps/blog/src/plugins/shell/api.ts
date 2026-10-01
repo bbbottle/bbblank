@@ -4,13 +4,15 @@
 import { defineService, defineTopic } from "@bbblank/sdk";
 import type { PluginID } from "@bbblank/sdk";
 import { defineSlot } from "../../../../../packages/host/src";
+import { TrustedHtmlSchema } from "@bbblank/host-dom";
 import { Schema } from "effect";
 
 export const ShellPluginId = "shell" as PluginID;
 
 export const NoteSchema = Schema.Struct({
   id: Schema.Number,
-  content: Schema.String,
+  /** 字符串按纯文本渲染；HTML 须经 Html capability 的 trust() 取得 TrustedHtml */
+  content: Schema.Union([Schema.String, TrustedHtmlSchema]),
 });
 
 export const ShellSlots = {

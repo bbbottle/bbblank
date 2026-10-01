@@ -1,7 +1,11 @@
 import type { PluginEventsBus } from "@bbblank/sdk";
-import type { FooterNoteService } from "../shell/api";
+import { isTrustedHtml } from "@bbblank/host-dom";
+import type { FooterNoteService, Note } from "../shell/api";
 import { ContentNoteChangeTopic } from "./api";
 import type { ContentNote, IContentNoteService, Letter } from "./api";
+
+const sameContent = (a: Note["content"], b: Note["content"]) =>
+  isTrustedHtml(a) && isTrustedHtml(b) ? a.html === b.html : a === b;
 
 export const createContentNoteService = (
   letter: Letter,
@@ -17,7 +21,7 @@ export const createContentNoteService = (
       const prev = notes.get(contentNote.note.id);
       if (
         prev?.contentStr === contentNote.contentStr &&
-        prev.note.content === contentNote.note.content
+        sameContent(prev.note.content, contentNote.note.content)
       )
         return;
       notes.set(contentNote.note.id, contentNote);

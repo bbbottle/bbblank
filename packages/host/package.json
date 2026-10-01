@@ -19,10 +19,12 @@
   "dependencies": {
     "@bbblank/kernel": "workspace:*",
     "@bbblank/sdk": "workspace:*",
+    "dompurify": "^3.4.16",
     "effect": "4.0.0-rc.112"
   },
   "devDependencies": {
     "happy-dom": "^20.0.0",
+    "jsdom": "^30.1.1",
     "typescript": "7.0.2",
     "vite": "^8.2.2",
     "vitest": "^5.0.0"

@@ -13,6 +13,8 @@ import type { KernelView } from "@bbblank/kernel";
 import {
   Dom,
   DomLive,
+  Html,
+  HtmlLive,
   PluginManager,
   PluginManagerLive,
   Router,
@@ -32,10 +34,11 @@ const kv = localStorageKeyValue();
 const loadable = [...builtins, ...optionals];
 
 const kernel = createKernel({
-  capabilities: [Dom, Router, Storage, PluginManager],
+  capabilities: [Dom, Router, Storage, PluginManager, Html],
   capabilityLayer: Layer.mergeAll(
     DomLive(document),
     RouterLive(window),
+    HtmlLive(window),
     PluginStorageLive.pipe(Layer.provide(kv)),
     PluginManagerLive((): KernelView => kernel.view),
   ),

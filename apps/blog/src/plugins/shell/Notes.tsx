@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import { FooterNoteService, Note, NoteChangeTopic } from "./api";
 import { PluginEventsBus } from "@bbblank/sdk";
+import { isTrustedHtml } from "@bbblank/host-dom";
 
-export const NoteItem = (props: Note) => {
-  return <li>{props.content}</li>;
-};
+export const NoteItem = ({ content }: Note) =>
+  isTrustedHtml(content) ? (
+    <li dangerouslySetInnerHTML={{ __html: content.html }} />
+  ) : (
+    <li>{content}</li>
+  );
 
 const useNotes = (fnService: FooterNoteService, evtBus: PluginEventsBus) => {
   const [notes, setNotes] = useState<ReadonlyArray<Note>>(
