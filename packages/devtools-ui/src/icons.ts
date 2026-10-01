@@ -1,28 +1,18 @@
 /** Chrome DevTools 图标（vendor/icons，BSD-3-Clause），fill 已替换为 currentColor 以便着色 */
-import clear from "../vendor/icons/clear.svg?raw";
-import cross from "../vendor/icons/cross.svg?raw";
-import crossCircle from "../vendor/icons/cross-circle-filled.svg?raw";
-import extension from "../vendor/icons/extension.svg?raw";
-import gear from "../vendor/icons/gear.svg?raw";
-import filter from "../vendor/icons/filter.svg?raw";
-import info from "../vendor/icons/info.svg?raw";
-import refresh from "../vendor/icons/refresh.svg?raw";
-import triangleDown from "../vendor/icons/triangle-down.svg?raw";
-import triangleRight from "../vendor/icons/triangle-right.svg?raw";
-import warning from "../vendor/icons/warning-filled.svg?raw";
+import { iconSvgs } from "./generated/assets.js";
 
 const svgs = {
-  clear,
-  cross,
-  "cross-circle": crossCircle,
-  extension,
-  filter,
-  gear,
-  info,
-  refresh,
-  "triangle-down": triangleDown,
-  "triangle-right": triangleRight,
-  warning,
+  clear: iconSvgs.clear,
+  cross: iconSvgs.cross,
+  "cross-circle": iconSvgs["cross-circle-filled"],
+  extension: iconSvgs.extension,
+  filter: iconSvgs.filter,
+  gear: iconSvgs.gear,
+  info: iconSvgs.info,
+  refresh: iconSvgs.refresh,
+  "triangle-down": iconSvgs["triangle-down"],
+  "triangle-right": iconSvgs["triangle-right"],
+  warning: iconSvgs["warning-filled"],
 } as const;
 
 export type IconName = keyof typeof svgs;

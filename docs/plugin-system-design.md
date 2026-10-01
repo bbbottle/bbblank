@@ -1036,9 +1036,35 @@ plugins/<name>/
 
 - `shell`（`[Dom, Router]`，builtin）：在 `RootSlot` 中搭骨架，提供 `ShellSlots` 与 `shell.footerNote` 服务（脚注，按 `order` 编号）；站内链接 `a[data-link]` 交给路由；非 Entry 路由隐藏 footer。
 - `content`（`[Dom, Router, Html]`，builtin，依赖 `shell ^1.1.0`）：按路由把 React 页面渲染进 `ShellSlots.main`；提供 `content.noteService`（为信件文字添加笔记，按出现位置连续编号并同步到脚注）与 `content.square.click` 事件；`/blog` 拉取远程文章并经 `Html` 净化。
-- `plugin-manager`（`[PluginManager]`，builtin）：订阅 `content.square.click`——devtools 已安装则打开面板；否则若 about / blog / weather 均已启用则安装并打开 devtools；否则安装这批插件。
+- `plugin-manager`（`[PluginManager]`，builtin）：订阅 `content.square.click`——devtools 已安装则打开面板；否则若 about / blog / weather 均已启用则安装 devtools 及其缺省面板插件并打开；否则安装这批插件。
 - `about` / `blog` / `weather`（按需，依赖 `content ^1.0.0`）：启用时添加笔记、停用时移除；blog 的笔记含链接（`Html`），weather 乐观插入占位后更新为 Open-Meteo 查询结果，查询失败时移除。
-- `devtools`（`[Dom, PluginManager, Storage]`，按需；Storage 保存抽屉高度与当前面板）：仿 Chrome DevTools 的底部抽屉，独立挂在 `RootSlot`（不依赖 shell）；面板 Plugins（依赖树与启停；内核的 `disable` 在仍有已启用依赖者时返回 `DependentsActive`，因此由 devtools 按依赖顺序先停用依赖者，重新启用时按逆序恢复）/ Console（活动流中的事件）/ Network（生命周期阶段耗时）/ Application（安装记录、审计）/ Market（目录中未安装的插件）。样式复用 chrome-devtools-frontend 的设计 tokens 与图标（BSD-3-Clause，随源码保留声明），组件为自建 Web Components（Shadow DOM 隔离站点样式）。配色与 Chrome「Match Chrome color theme」同源：Chrome 以浏览器主题色经 Material TonalSpot 生成 `--color-ref-*` 注入 DevTools，tokens 中的数值只是缺省值；页面读不到浏览器主题色，devtools 以可配置的种子色（缺省 `#01696f`，存于 Storage）经同一算法生成调色板。
+- `devtools`（`[Dom, PluginManager, Storage]`，按需；Storage 保存抽屉高度与当前面板）：仿 Chrome DevTools 的底部抽屉，独立挂在 `RootSlot`（不依赖 shell）；内置 Plugins 面板（依赖树与启停；内核的 `disable` 在仍有已启用依赖者时返回 `DependentsActive`，因此由 devtools 按依赖顺序先停用依赖者，重新启用时按逆序恢复）与 Market 面板（插件目录与安装；作为安装入口不做成可卸载的面板插件，否则卸载后页面内再无安装途径），其余面板由面板插件提供（见下）。样式复用 chrome-devtools-frontend 的设计 tokens 与图标（BSD-3-Clause，随源码保留声明），组件为自建 Web Components（Shadow DOM 隔离站点样式）。配色与 Chrome「Match Chrome color theme」同源：Chrome 以浏览器主题色经 Material TonalSpot 生成 `--color-ref-*` 注入 DevTools，tokens 中的数值只是缺省值；页面读不到浏览器主题色，devtools 以可配置的种子色（缺省 `#01696f`，存于 Storage）经同一算法生成调色板。
+- `devtools-console` / `devtools-network` / `devtools-application`（`[Dom, PluginManager]`，依赖 `devtools ^1.0.0`）：面板插件，分别是活动流中的事件、生命周期阶段耗时、安装记录与审计。plugin-manager 首次安装 devtools 时一并安装它们；之后可在 Market 中单独卸载、安装。
+
+**devtools 面板扩展**：面板以「服务登记 + 专属插槽」两步接入——
+
+```ts
+// devtools/api.ts
+export interface PanelSpec { readonly id: string; readonly title: string; readonly order?: number }
+export interface DevtoolsPanelsService {
+  register(spec: PanelSpec): Cleanup;                         // 出现标签；devtools 随即 provideSlot(panelSlot(id))
+  setBadge(id: string, count: number): void;                  // 标签上的计数（0 隐藏）
+  onShown(id: string, cb: (shown: boolean) => void): Cleanup; // 面板可见性；隐藏时不必渲染
+}
+export const DevtoolsPanels = defineService<DevtoolsPanelsService>('devtools.panels');
+export const panelSlot = (id: string): Slot => defineSlot(`devtools.panel.${id}`);
+
+// 面板插件 setup
+api.lifecycle.addCleanup((await api.services.get(DevtoolsPanels)).register({ id: 'console', title: 'Console', order: 10 }));
+api.caps.dom.mount(panelSlot('console'), host => render(host));
+```
+
+- **故障归属**：面板内容由面板插件自己经 `Dom.mount` 挂载，渲染异常经其 `ctx.guard` 归因到面板插件并由监管器重启它，devtools 不受影响；若由 devtools 回调面板的 `render`，异常会归因到 devtools。
+- **生命周期**：登记的 Cleanup 与挂载都在面板插件 Scope 内，面板插件停用时标签与内容一并移除；devtools 停用时插槽撤销，挂载按 Dom 的 slot 语义卸载（依赖声明保证面板插件先被停用）。
+- **最小权限**：devtools 不向面板转交数据；面板需要的数据由面板插件自行申请 capability（如 `PluginManager` 的 read），宿主可单独授权、审计。
+- **样式**：插槽位于 devtools 的 Shadow Root 内，面板内容直接使用 devtools 的样式与 tokens；组件、样式、图标、配色与数据模型由 `@bbblank/devtools-ui` 包提供，devtools 与面板插件都静态 import 它（打包为公共 chunk）。
+
+**`@bbblank/devtools-ui`**（`packages/devtools-ui`）：仿 Chrome DevTools 的 UI 套件（DOM 构造、Toolbar / SplitWidget / TreeOutline / DataGrid、设计 tokens 与图标、种子色调色板、插件与活动流的本地模型）。依赖方向：`host-dom`/`kernel`（仅类型）← `devtools-ui` ← `apps/*`。chrome-devtools-frontend 的资源（BSD-3-Clause）保存在 `vendor/`，由 `scripts/gen-assets.mjs` 生成为 TS 字符串模块，使包可直接用 `tsc` 构建、不依赖打包器的 `?raw` 导入。
 
 空白 HTML 只需 `<script type="module" src="/src/main.ts">`。
 

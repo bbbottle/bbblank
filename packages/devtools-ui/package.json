@@ -1,0 +1,28 @@
+{
+  "name": "@bbblank/devtools-ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "gen-assets": "node scripts/gen-assets.mjs",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bbblank/host-dom": "workspace:*",
+    "@bbblank/kernel": "workspace:*",
+    "@bbblank/sdk": "workspace:*",
+    "@material/material-color-utilities": "0.4.0"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
+}

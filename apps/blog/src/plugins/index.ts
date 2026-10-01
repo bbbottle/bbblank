@@ -19,7 +19,6 @@ import { ContentPluginId } from "./content/api";
 import { DevtoolsPluginId } from "./devtools/api";
 import { DevtoolsApplicationPluginId } from "./devtools-application/api";
 import { DevtoolsConsolePluginId } from "./devtools-console/api";
-import { DevtoolsMarketPluginId } from "./devtools-market/api";
 import { DevtoolsNetworkPluginId } from "./devtools-network/api";
 import { PluginManagerPluginId } from "./plugin-manager/api";
 import { ShellPluginId } from "./shell/api";
@@ -87,7 +86,7 @@ export const plugins: ReadonlyArray<PluginEntry> = [
     name: "DevTools",
     version: "1.0.0",
     description:
-      "仿 Chrome DevTools 的底部抽屉：插件依赖树与启停；其余面板由面板插件提供。",
+      "仿 Chrome DevTools 的底部抽屉：内置 Plugins（依赖树与启停）与 Market（插件目录与安装）；其余面板由面板插件提供。",
     builtin: false,
     load: () => import("./devtools").then((m) => m.devtools),
   },
@@ -114,13 +113,5 @@ export const plugins: ReadonlyArray<PluginEntry> = [
     description: "DevTools 面板：安装记录、审计日志与事件统计。",
     builtin: false,
     load: () => import("./devtools-application").then((m) => m.devtoolsApplication),
-  },
-  {
-    id: DevtoolsMarketPluginId,
-    name: "DevTools Market",
-    version: "1.0.0",
-    description: "DevTools 面板：插件目录，未安装的插件可一键安装。",
-    builtin: false,
-    load: () => import("./devtools-market").then((m) => m.devtoolsMarket),
   },
 ];

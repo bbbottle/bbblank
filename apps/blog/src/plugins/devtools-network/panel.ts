@@ -1,17 +1,24 @@
 /** Network：活动流中的生命周期阶段（load / setup / stop），按时间画出瀑布图 */
 import type { Activity } from "@bbblank/kernel";
-import { dataGrid, toolbar, toolbarButton, toolbarCheckbox, toolbarFilter, toolbarSeparator } from "../ui/components";
-import type { Column } from "../ui/components";
-import { h, replace } from "../ui/dom";
-import { ms } from "../ui/format";
-import { icon } from "../ui/icons";
-import type { PanelFactory } from "./panel";
+import {
+  dataGrid,
+  h,
+  icon,
+  ms,
+  replace,
+  toolbar,
+  toolbarButton,
+  toolbarCheckbox,
+  toolbarFilter,
+  toolbarSeparator,
+} from "@bbblank/devtools-ui";
+import type { Column, DevtoolsModel, PanelView } from "@bbblank/devtools-ui";
 
 type Lifecycle = Extract<Activity, { kind: "lifecycle" }>;
 
 const PHASE = { load: "加载", setup: "启用", stop: "停止" } as const;
 
-export const networkPanel: PanelFactory = (model) => {
+export const networkPanel = (model: DevtoolsModel): PanelView => {
   let query = "";
   let showStop = true;
   let selected: string | undefined;
@@ -94,8 +101,6 @@ export const networkPanel: PanelFactory = (model) => {
   };
 
   return {
-    id: "network",
-    title: "Network",
     el,
     update: (what) => {
       if (what !== "plugins") render();

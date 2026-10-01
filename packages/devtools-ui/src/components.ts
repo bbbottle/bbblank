@@ -2,10 +2,14 @@
  * 仿 Chrome DevTools 的基础组件（自定义元素）。组件不各自创建 Shadow Root：
  * 它们都渲染在 <bb-devtools> 的 Shadow Root 内，样式统一由 styles.ts 提供，设计 tokens 经 CSS 变量继承。
  */
-import { append, define, h, replace } from "./dom";
-import type { Child } from "./dom";
-import { icon } from "./icons";
-import type { IconName } from "./icons";
+import { append, define, h, replace } from "./dom.js";
+import type { Child } from "./dom.js";
+import { icon } from "./icons.js";
+import type { IconName } from "./icons.js";
+
+/** 插件状态色块（enabled / starting / stopping / disabled / failed / quarantined） */
+export const statusDot = (status: string) =>
+  h("span", { class: `status-dot status-${status}`, title: status });
 
 // ---------- Toolbar ----------
 

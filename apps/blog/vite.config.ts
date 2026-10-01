@@ -13,6 +13,9 @@ export default defineConfig({
       "@bbblank/host-dom": fileURLToPath(
         new URL("../../packages/host/src/index.ts", import.meta.url),
       ),
+      "@bbblank/devtools-ui": fileURLToPath(
+        new URL("../../packages/devtools-ui/src/index.ts", import.meta.url),
+      ),
     },
   },
   build: {
@@ -33,6 +36,11 @@ export default defineConfig({
             {
               name: "runtime",
               test: /[\\/]node_modules[\\/](effect|dompurify)[\\/]|[\\/]packages[\\/](sdk|kernel|host)[\\/]src[\\/]|[\\/]src[\\/]plugins[\\/][^\\/]+[\\/]api\.ts$/,
+            },
+            // devtools 与各面板插件共用的 UI 套件（含调色板生成）：随 devtools 按需加载
+            {
+              name: "devtools-ui",
+              test: /[\\/]packages[\\/]devtools-ui[\\/]src[\\/]|[\\/]node_modules[\\/]@material[\\/]material-color-utilities[\\/]/,
             },
           ],
         },

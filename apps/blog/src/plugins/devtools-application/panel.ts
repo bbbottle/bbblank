@@ -1,12 +1,17 @@
 /** Application：安装记录（实时）、审计日志与事件统计（来自诊断导出，按需刷新） */
 import type { Diagnostics } from "@bbblank/kernel";
 import type { PluginInfo } from "@bbblank/host-dom";
-import { dataGrid, toolbar, toolbarButton, toolbarText } from "../ui/components";
-import type { Column } from "../ui/components";
-import { h, replace } from "../ui/dom";
-import { clock } from "../ui/format";
-import { statusDot } from "./plugins";
-import type { PanelFactory } from "./panel";
+import {
+  clock,
+  dataGrid,
+  h,
+  replace,
+  statusDot,
+  toolbar,
+  toolbarButton,
+  toolbarText,
+} from "@bbblank/devtools-ui";
+import type { Column, DevtoolsModel, PanelView } from "@bbblank/devtools-ui";
 
 type View = "installs" | "audit" | "events";
 
@@ -19,7 +24,7 @@ const VIEWS: ReadonlyArray<readonly [View, string]> = [
 type AuditRow = Diagnostics["audit"][number];
 type DeadLetterRow = Diagnostics["events"]["deadLetters"][number];
 
-export const applicationPanel: PanelFactory = (model) => {
+export const applicationPanel = (model: DevtoolsModel): PanelView => {
   let view: View = "installs";
   let diag: Diagnostics | undefined;
   let loadError: string | undefined;
@@ -123,8 +128,6 @@ export const applicationPanel: PanelFactory = (model) => {
   };
 
   return {
-    id: "application",
-    title: "Application",
     el,
     update: (what) => {
       if (what === "shown" && view !== "installs") void refresh();

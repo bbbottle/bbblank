@@ -1,4 +1,7 @@
-/** devtools 的数据模型：插件列表与活动流的本地副本，变化时通知面板 */
+/**
+ * 插件列表与活动流的本地副本，变化时通知订阅方。每个使用者（devtools、各面板插件）各自持有一份：
+ * 订阅随各自插件的 Scope 释放，清空等本地操作互不影响。
+ */
 import type { PluginID } from "@bbblank/sdk";
 import type { Activity } from "@bbblank/kernel";
 import type { PluginInfo, PluginManagerFacade } from "@bbblank/host-dom";
@@ -6,17 +9,22 @@ import type { PluginInfo, PluginManagerFacade } from "@bbblank/host-dom";
 /** 与内核环形缓冲同量级；超出后丢弃最旧记录 */
 const MAX_ACTIVITY = 1000;
 
-export class Model {
+export class DevtoolsModel {
   plugins: ReadonlyArray<PluginInfo> = [];
   readonly activity: Array<Activity> = [];
   readonly #listeners = new Set<(what: "plugins" | "activity") => void>();
 
-  constructor(readonly pm: PluginManagerFacade) {
+  /** activity：是否订阅活动流（订阅会写审计 pluginManager:observe；不需要的面板不必订阅） */
+  constructor(
+    readonly pm: PluginManagerFacade,
+    opts: { readonly activity?: boolean } = {},
+  ) {
     this.plugins = pm.list();
     pm.subscribe(() => {
       this.plugins = pm.list();
       this.#emit("plugins");
     });
+    if (!opts.activity) return;
     // replay：打开 devtools 之前发生的启动、点击等活动同样可见
     pm.observe(
       (a) => {
@@ -79,4 +87,12 @@ export class Model {
     visit(id);
     return [...out.values()];
   }
+}
+
+export type ModelChange = "plugins" | "activity" | "shown";
+
+/** 面板视图：el 由面板自行持有；update 只在面板可见时调用（"shown" 表示刚变为可见，应整体刷新） */
+export interface PanelView {
+  readonly el: HTMLElement;
+  update(what: ModelChange): void;
 }

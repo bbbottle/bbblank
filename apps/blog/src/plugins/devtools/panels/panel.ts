@@ -1,5 +1,6 @@
-import type { Model } from "../model";
+import type { DevtoolsModel } from "@bbblank/devtools-ui";
 
+/** devtools 内置面板（目前只有 Plugins）；面板插件改经 DevtoolsPanels 服务接入 */
 export interface Panel {
   readonly id: string;
   readonly title: string;
@@ -8,4 +9,4 @@ export interface Panel {
   update(what: "plugins" | "activity" | "shown"): void;
 }
 
-export type PanelFactory = (model: Model, self: string) => Panel;
+export type PanelFactory = (model: DevtoolsModel, self: string) => Panel;

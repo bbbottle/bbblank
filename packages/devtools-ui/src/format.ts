@@ -1,6 +1,6 @@
 /** 时间、耗时与对象预览的格式化（仿 Chrome Console 的对象展示） */
-import { h } from "./dom";
-import { icon } from "./icons";
+import { h } from "./dom.js";
+import { icon } from "./icons.js";
 
 const pad = (n: number, w = 2) => String(n).padStart(w, "0");
 

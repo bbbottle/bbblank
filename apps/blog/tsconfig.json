@@ -13,7 +13,8 @@
     "paths": {
       "@bbblank/sdk": ["../../packages/sdk/src/index.ts"],
       "@bbblank/kernel": ["../../packages/kernel/src/index.ts"],
-      "@bbblank/host-dom": ["../../packages/host/src/index.ts"]
+      "@bbblank/host-dom": ["../../packages/host/src/index.ts"],
+      "@bbblank/devtools-ui": ["../../packages/devtools-ui/src/index.ts"]
     }
   },
   "include": ["src/**/*", "vite.config.ts"],

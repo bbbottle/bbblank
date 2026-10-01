@@ -1,14 +1,15 @@
 /**
  * devtools —— 仿 Chrome DevTools 的插件面板（底部抽屉）。
  * 独立挂在 RootSlot（不依赖 shell），停用 shell 时仍可观察级联停用与恢复；
- * 数据经 PluginManager capability 读取（list / subscribe / observe），操作同样经它执行。
+ * 内置 Plugins 与 Market 面板（安装入口不随面板插件卸载而消失），其余面板由面板插件经 DevtoolsPanels 服务登记、
+ * 经 Dom.mount 挂入 panelSlot(id)（契约见 ./api）。
  */
 import { definePlugin, Storage } from "@bbblank/sdk";
 import type { SemVer } from "@bbblank/sdk";
 import { Dom, PluginManager, RootSlot } from "@bbblank/host-dom";
-import { DevtoolsOpenTopic, DevtoolsPluginId } from "./api";
+import { DevtoolsModel } from "@bbblank/devtools-ui";
+import { DevtoolsOpenTopic, DevtoolsPanels, DevtoolsPluginId, panelSlot } from "./api";
 import { createDevtools } from "./devtools";
-import { Model } from "./model";
 
 /** 挂在 RootSlot 中其他挂载（shell 等）之后 */
 const WEIGHT = 1000;
@@ -18,11 +19,12 @@ export const devtools = definePlugin({
     id: DevtoolsPluginId,
     name: "DevTools",
     version: "1.0.0" as SemVer,
+    services: { provide: [DevtoolsPanels.key] },
   },
   capabilities: [Dom, PluginManager, Storage],
   setup: (api) => {
     const { dom, pluginManager, storage } = api.caps;
-    const model = new Model(pluginManager);
+    const model = new DevtoolsModel(pluginManager);
 
     // 停靠：面板打开时把页面的可视区域收缩到面板上方（与 Chrome 底部停靠一致），不遮挡任何内容。
     // body 改为固定定位的滚动容器；切换前后把滚动位置在视口与 body 之间转移
@@ -45,7 +47,11 @@ export const devtools = definePlugin({
     };
     api.lifecycle.addCleanup(() => dock(undefined));
 
-    const ui = createDevtools(model, DevtoolsPluginId, storage, dock);
+    const ui = createDevtools(model, DevtoolsPluginId, storage, {
+      dock,
+      provideSlot: (id, el) => dom.provideSlot(panelSlot(id), el),
+    });
+    api.services.register(DevtoolsPanels, ui.panels);
 
     api.events.on(DevtoolsOpenTopic, () => ui.open());
 

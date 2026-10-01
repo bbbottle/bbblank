@@ -2,7 +2,7 @@
  * devtools 样式：颜色、尺寸、圆角取自 vendor/design_system_tokens.css（Chrome DevTools 设计 tokens），
  * 布局数值参照 chrome-devtools-frontend 的 tabbedPane.css / toolbar.css / dataGrid.css（浅色主题）。
  */
-import tokens from "../vendor/design_system_tokens.css?raw";
+import { designTokens as tokens } from "./generated/assets.js";
 
 const base = /* css */ `
 :host {
@@ -71,6 +71,8 @@ button, input { font: inherit; color: inherit; }
 .panel-host { flex: auto; display: flex; min-height: 0; }
 .panel { flex: auto; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .panel[hidden] { display: none; }
+/* 面板插件经 Dom.mount 挂入面板插槽时，宿主生成的挂载节点 <div data-plugin> 占满面板 */
+.panel > [data-plugin], .panel-root { flex: auto; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 
 /* ---------- icons ---------- */
 .icon { display: inline-flex; width: 20px; height: 20px; color: var(--icon-default); flex: none; }

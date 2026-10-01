@@ -1,10 +1,19 @@
 /** Console：活动流中的事件。发布为普通消息，背压丢弃为警告，校验失败与生命周期失败为错误 */
 import type { Activity } from "@bbblank/kernel";
-import { toolbar, toolbarButton, toolbarCheckbox, toolbarFilter, toolbarSeparator, toolbarText } from "../ui/components";
-import { h, replace } from "../ui/dom";
-import { clock, objectPreview } from "../ui/format";
-import { icon } from "../ui/icons";
-import type { PanelFactory } from "./panel";
+import {
+  clock,
+  h,
+  icon,
+  objectPreview,
+  replace,
+  toolbar,
+  toolbarButton,
+  toolbarCheckbox,
+  toolbarFilter,
+  toolbarSeparator,
+  toolbarText,
+} from "@bbblank/devtools-ui";
+import type { DevtoolsModel, PanelView } from "@bbblank/devtools-ui";
 
 type Level = "info" | "warning" | "error";
 
@@ -61,7 +70,7 @@ const body = (a: Activity) => {
 export const issueCount = (activity: ReadonlyArray<Activity>) =>
   activity.filter((a) => levelOf(a) === "warning" || levelOf(a) === "error").length;
 
-export const consolePanel: PanelFactory = (model) => {
+export const consolePanel = (model: DevtoolsModel): PanelView => {
   let query = "";
   const levels = new Set<Level>(["info", "warning", "error"]);
   const count = toolbarText("");
@@ -133,8 +142,6 @@ export const consolePanel: PanelFactory = (model) => {
   };
 
   return {
-    id: "console",
-    title: "Console",
     el,
     update: (what) => {
       if (what !== "plugins") render();

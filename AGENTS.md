@@ -6,7 +6,8 @@
 
 - `@bbblank/kernel` 与 `@bbblank/sdk` **不得 import** `document`、`window`、React、Node 内建模块或任何平台 API；它们只依赖 `effect`（sdk 仅用 effect 的类型与 Schema）。
 - 平台能力一律做成 Capability（`defineCapability` + `Layer`），由宿主在 `createKernel` 时注入；参考 `packages/host-dom`。
-- 包间依赖方向：`sdk` ← `kernel` ← `host-dom`/`apps/*`，禁止反向。
+- 包间依赖方向：`sdk` ← `kernel` ← `host-dom` ← `devtools-ui` ← `apps/*`，禁止反向（`devtools-ui` 对 kernel/host-dom 只用类型）。
+- `packages/devtools-ui` 的 chrome-devtools-frontend 资源在 `vendor/`（BSD-3-Clause）；改动 vendor 后执行 `pnpm --filter @bbblank/devtools-ui gen-assets` 重新生成 `src/generated/assets.ts`，不要手改生成文件。
 - TypeScript `strict`，ESM（`"type": "module"`），NodeNext 解析；包内引用必须带 `.js` 后缀。
 
 ## 工具链
@@ -25,4 +26,5 @@ pnpm@11 workspace；TypeScript 7；vitest 5；effect `4.0.0-rc.112`（v4 API，�
 
 - 每个插件一个目录 `apps/blog/src/plugins/<name>/`：`index.ts` 只放插件定义与 setup 编排；`api.ts` 是对外契约（服务 Token、Slot、插件 id，只有类型与常量）；其余文件是内部实现。
 - 跨插件只能 import 对方的 `api.ts`，不得 import 其内部文件；新插件在 `plugins/index.ts` 的 `plugins` 目录中登记（`id` 取自其 `api.ts`，`load: () => import("./<name>")`，`builtin` 表示首次访问自动安装）。
-- 代码分割：`plugins/index.ts` 只能静态 import 各插件的 `api.ts`，插件实现一律经 `import()` 由 `LazyPluginLoader` 按需加载；`api.ts` 须保持轻量（不得引入 React 等重依赖），因其进入启动 chunk。chunk 分组见 `apps/blog/vite.config.ts`（`runtime` / `react`）。
+- 代码分割：`plugins/index.ts` 只能静态 import 各插件的 `api.ts`，插件实现一律经 `import()` 由 `LazyPluginLoader` 按需加载；`api.ts` 须保持轻量（不得引入 React 等重依赖），因其进入启动 chunk。chunk 分组见 `apps/blog/vite.config.ts`（`runtime` / `react` / `devtools-ui`）。
+- devtools 面板插件（`devtools-<name>`）：依赖 `devtools ^1.0.0`，经 `DevtoolsPanels.register` 登记标签（Cleanup 交给 `api.lifecycle.addCleanup`），内容经 `dom.mount(panelSlot(id), …)` 挂载；UI 一律用 `@bbblank/devtools-ui`，数据由面板插件自行申请 capability。参考 `plugins/devtools-console`。

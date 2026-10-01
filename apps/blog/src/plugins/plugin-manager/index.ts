@@ -13,9 +13,19 @@ import { AboutPluginId } from "../about/api";
 // import { BlogPluginId } from "../blog/api";
 import { DevtoolsOpenTopic, DevtoolsPluginId } from "../devtools/api";
 // import { WeatherPluginId } from "../weather/api";
+import { DevtoolsApplicationPluginId } from "../devtools-application/api";
+import { DevtoolsConsolePluginId } from "../devtools-console/api";
+import { DevtoolsNetworkPluginId } from "../devtools-network/api";
 import { PluginManagerPluginId } from "./api";
 
 const batch = [AboutPluginId];
+
+/** 首次安装 devtools 时一并安装的面板插件；之后由用户在 Market 中自行增删 */
+const devtoolsPanels = [
+  DevtoolsConsolePluginId,
+  DevtoolsNetworkPluginId,
+  DevtoolsApplicationPluginId,
+];
 
 export const pluginManager = definePlugin({
   manifest: {
@@ -33,9 +43,11 @@ export const pluginManager = definePlugin({
         await Promise.all(batch.map((id) => pluginManager.install(id)));
         return;
       }
-      // install 返回时 devtools 的 setup 已完成、已订阅打开事件
+      const firstTime = !status.has(DevtoolsPluginId);
+      // install 返回时 devtools 的 setup 已完成、已订阅打开事件并注册了 DevtoolsPanels
       await pluginManager.install(DevtoolsPluginId);
       api.events.emit(DevtoolsOpenTopic, {});
+      if (firstTime) await Promise.all(devtoolsPanels.map((id) => pluginManager.install(id)));
     });
   },
 });

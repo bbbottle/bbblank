@@ -17,6 +17,9 @@ importers:
 
   apps/blog:
     dependencies:
+      '@bbblank/devtools-ui':
+        specifier: workspace:*
+        version: link:../../packages/devtools-ui
       '@bbblank/host-dom':
         specifier: workspace:*
         version: link:../../packages/host
@@ -26,9 +29,6 @@ importers:
       '@bbblank/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
-      '@material/material-color-utilities':
-        specifier: 0.4.0
-        version: 0.4.0
       effect:
         specifier: 4.0.0-rc.112
         version: 4.0.0-rc.112
@@ -51,6 +51,25 @@ importers:
       vite:
         specifier: ^8.2.2
         version: 8.3.0(@types/node@20.14.0)(esbuild@0.28.1)
+
+  packages/devtools-ui:
+    dependencies:
+      '@bbblank/host-dom':
+        specifier: workspace:*
+        version: link:../host
+      '@bbblank/kernel':
+        specifier: workspace:*
+        version: link:../kernel
+      '@bbblank/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      '@material/material-color-utilities':
+        specifier: 0.4.0
+        version: 0.4.0
+    devDependencies:
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
 
   packages/host:
     dependencies:

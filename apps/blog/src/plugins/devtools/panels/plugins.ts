@@ -1,14 +1,19 @@
 /** Plugins（对应 Elements）：左侧依赖树，右侧选中插件的详情与操作（对应 Styles 窗格） */
 import type { PluginID } from "@bbblank/sdk";
 import type { PluginInfo } from "@bbblank/host-dom";
-import { splitWidget, textButton, toolbar, toolbarText, treeOutline } from "../ui/components";
-import type { TreeNode } from "../ui/components";
-import { h, replace } from "../ui/dom";
-import type { Child } from "../ui/dom";
-import { describeError } from "../ui/format";
+import {
+  describeError,
+  h,
+  replace,
+  splitWidget,
+  statusDot,
+  textButton,
+  toolbar,
+  toolbarText,
+  treeOutline,
+} from "@bbblank/devtools-ui";
+import type { Child, TreeNode } from "@bbblank/devtools-ui";
 import type { PanelFactory } from "./panel";
-
-export const statusDot = (status: string) => h("span", { class: `status-dot status-${status}`, title: status });
 
 const section = (title: string, ...body: ReadonlyArray<Child>) =>
   h("div", { class: "section" }, h("div", { class: "section-title" }, title), h("div", { class: "section-body" }, ...body));

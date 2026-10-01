@@ -1,14 +1,18 @@
 /** Market：宿主登记的插件目录（目前均为内置插件）；未安装的可一键安装，后续接入远程 manifest */
 import type { PluginCatalogEntry } from "@bbblank/host-dom";
-import { dataGrid, textButton, toolbar, toolbarText } from "../ui/components";
-import type { Column } from "../ui/components";
-import { h } from "../ui/dom";
-import { describeError } from "../ui/format";
-import { icon } from "../ui/icons";
-import { statusDot } from "./plugins";
-import type { PanelFactory } from "./panel";
+import {
+  dataGrid,
+  describeError,
+  h,
+  icon,
+  statusDot,
+  textButton,
+  toolbar,
+  toolbarText,
+} from "@bbblank/devtools-ui";
+import type { Column, DevtoolsModel, PanelView } from "@bbblank/devtools-ui";
 
-export const marketPanel: PanelFactory = (model) => {
+export const marketPanel = (model: DevtoolsModel): PanelView => {
   const grid = dataGrid<PluginCatalogEntry>();
   const summary = toolbarText("");
   const pending = new Set<string>();
@@ -67,8 +71,6 @@ export const marketPanel: PanelFactory = (model) => {
   };
 
   return {
-    id: "market",
-    title: "Market",
     el,
     update: (what) => {
       if (what !== "activity") render();
