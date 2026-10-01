@@ -33,7 +33,7 @@ export const Notes = ({
   return (
     <ol>
       {notes.map((n) => (
-        <NoteItem {...n} />
+        <NoteItem key={n.id} {...n} />
       ))}
     </ol>
   );

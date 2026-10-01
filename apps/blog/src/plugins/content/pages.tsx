@@ -25,8 +25,7 @@ export const Entry = () => {
     <article>
       <p>你好：</p>
       <p>
-        十年前的我<sup>[1]</sup>
-        会想在这里实现宇宙中最绚丽的动画，现在？也许只想留下一点利用咖啡时间组装好的文字，和手机最近拍到的照片。
+        十年前的我会想在这里实现宇宙中最绚丽的动画，现在？也许只想留下一点利用咖啡时间组装好的文字，和手机最近拍到的照片。现在，开始珍惜刷牙、剪指甲、擦眼镜、喝水、走路、发呆、洗碗的时间。
       </p>
       <div className="signature" style={{ textAlign: "right" }}>
         <p style={{ display: "inline-flex", flexDirection: "column" }}>
@@ -36,6 +35,7 @@ export const Entry = () => {
             <Square />
           </span>
           <span>二零二六 九月三十</span>
+          <span>长沙</span>
         </p>
       </div>
     </article>

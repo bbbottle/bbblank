@@ -6,7 +6,7 @@ export const css = `
   .shell > header { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 0; }
   .shell > header nav a { margin-right: 1rem; }
   .shell > main { flex: 1; }
-  .shell > footer { padding: 2rem 0; opacity: .6; font-size: .875rem; }
+  .shell > footer { padding-bottom: 2rem; border-block-start-color: #fefefe !important }
   a { color: var(--link, #0969da); text-decoration: none; }
   a:hover { text-decoration: underline; }
 /*!

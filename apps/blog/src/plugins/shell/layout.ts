@@ -14,6 +14,7 @@ export const buildLayout = (host: HTMLElement) => {
   const main = el("main", host);
 
   const footer = el("footer", host);
+  footer.className = "heti-fn";
 
   return {
     headerRight: el("div", header),
