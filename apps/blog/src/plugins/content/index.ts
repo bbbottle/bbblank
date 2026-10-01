@@ -9,7 +9,12 @@ import type { SemVer } from "@bbblank/sdk";
 import { Dom, Router } from "@bbblank/host-dom";
 import { FooterNote, ShellPluginId, ShellSlots } from "../shell/api";
 import { renderPages } from "./renderer";
-import { ContentNoteService, ContentPluginId, ContentRoutes, routeSlot } from "./api";
+import {
+  ContentNoteService,
+  ContentPluginId,
+  ContentRoutes,
+  routeSlot,
+} from "./api";
 import { letter } from "./letter";
 import { createContentNoteService } from "./note-service";
 import { builtinPaths } from "./pages";
@@ -19,7 +24,7 @@ export const content = definePlugin({
   manifest: {
     id: ContentPluginId,
     name: "Content",
-    version: "1.1.0" as SemVer,
+    version: "1.1.1" as SemVer,
     // FooterNote 服务自 shell 1.1.0 起提供
     dependencies: [{ id: ShellPluginId, range: "^1.1.0" }],
     // 提供服务需要在 manifest 中声明（§10.5），否则 register 会抛 PermissionDenied

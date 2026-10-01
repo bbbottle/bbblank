@@ -6,7 +6,12 @@
 import { definePlugin } from "@bbblank/sdk";
 import type { SemVer } from "@bbblank/sdk";
 import { Dom, Html } from "@bbblank/host-dom";
-import { ContentNoteService, ContentPluginId, ContentRoutes, routeSlot } from "../content/api";
+import {
+  ContentNoteService,
+  ContentPluginId,
+  ContentRoutes,
+  routeSlot,
+} from "../content/api";
 import type { Note } from "../shell/api";
 import { BlogPluginId } from "./api";
 import { renderBlog } from "./page";
@@ -17,7 +22,7 @@ export const blog = definePlugin({
   manifest: {
     id: BlogPluginId,
     name: "Blog",
-    version: "1.1.0" as SemVer,
+    version: "1.1.1" as SemVer,
     // content.routes 自 content 1.1.0 起提供
     dependencies: [{ id: ContentPluginId, range: "^1.1.0" }],
   },

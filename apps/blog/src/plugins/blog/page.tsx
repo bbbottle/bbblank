@@ -14,8 +14,21 @@ type PostsState =
   | { readonly kind: "error"; readonly message: string }
   | { readonly kind: "ready"; readonly posts: ReadonlyArray<RenderedPost> };
 
-const Square = ({ size = 12, color = "#000" }: { size?: number; color?: string }) => (
-  <span style={{ display: "inline-block", width: size, height: size, background: color }}></span>
+const Square = ({
+  size = 12,
+  color = "#000",
+}: {
+  size?: number;
+  color?: string;
+}) => (
+  <span
+    style={{
+      display: "inline-block",
+      width: size,
+      height: size,
+      background: color,
+    }}
+  ></span>
 );
 
 const Blog = ({ html }: { readonly html: HtmlFacade }) => {
@@ -30,7 +43,8 @@ const Blog = ({ html }: { readonly html: HtmlFacade }) => {
           posts: posts.map((p) => ({ ...p, content: html.trust(p.content) })),
         }),
       (e: unknown) => {
-        if (!ctrl.signal.aborted) setState({ kind: "error", message: String(e) });
+        if (!ctrl.signal.aborted)
+          setState({ kind: "error", message: String(e) });
       },
     );
     return () => ctrl.abort();
@@ -42,8 +56,7 @@ const Blog = ({ html }: { readonly html: HtmlFacade }) => {
     <section>
       {state.posts.map((p, i) => (
         <Fragment key={p.id}>
-          {i > 0 && <hr />}
-          <article>
+          <article style={{ marginTop: "6rem" }}>
             <h3>{p.title}</h3>
             <p className="heti-meta heti-small">
               <time dateTime={p.createdAt}>{p.createdAt.slice(0, 10)}</time>
@@ -52,7 +65,7 @@ const Blog = ({ html }: { readonly html: HtmlFacade }) => {
           </article>
         </Fragment>
       ))}
-      <hr />
+      <hr style={{ marginTop: "6rem" }} />
       <p className="heti-meta heti-small">
         <a data-link href="/">
           <Square />
