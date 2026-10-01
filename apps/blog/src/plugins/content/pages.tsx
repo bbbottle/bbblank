@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import type { ReactElement } from "react";
 import type { PluginEventsBus } from "@bbblank/sdk";
-import { ContentNoteChangeTopic } from "./api";
+import { ContentNoteChangeTopic, SquareClickTopic } from "./api";
 import type { ContentNote, IContentNoteService } from "./api";
 import { annotate } from "./annotate";
 
@@ -16,16 +16,20 @@ export interface PageDeps {
 const Square = ({
   size = 12,
   color = "#000",
+  onClick,
 }: {
   size?: number;
   color?: string;
+  onClick?: () => void;
 }) => (
   <span
+    onClick={onClick}
     style={{
       display: "inline-block",
       width: size,
       height: size,
       background: color,
+      cursor: onClick ? "pointer" : undefined,
     }}
   ></span>
 );
@@ -72,8 +76,12 @@ export const Entry = (deps: PageDeps) => {
         <p style={{ display: "inline-flex", flexDirection: "column" }}>
           <span style={{ display: "inline-flex", alignItems: "center" }}>
             <span>{letter.author}</span>
-            <Square />
-            <Square />
+            {[0, 1].map((index) => (
+              <Square
+                key={index}
+                onClick={() => deps.events.emit(SquareClickTopic, { index })}
+              />
+            ))}
           </span>
           <span>{letter.date}</span>
           <span>{letter.address}</span>

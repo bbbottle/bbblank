@@ -32,7 +32,7 @@ export const shell = definePlugin({
     dom.mount(RootSlot, (host) => {
       const layout = buildLayout(host);
 
-      renderNotes(layout.footer, fnService, api.events);
+      const stopNotes = renderNotes(layout.footer, fnService, api.events);
 
       const offs = [
         dom.provideSlot(ShellSlots.headerRight, layout.headerRight),
@@ -44,6 +44,7 @@ export const shell = definePlugin({
 
       return () => {
         offLinks();
+        void stopNotes();
         for (const off of offs) void off();
       };
     });

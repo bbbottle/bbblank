@@ -13,11 +13,13 @@ import type { KernelView } from "@bbblank/kernel";
 import {
   Dom,
   DomLive,
+  PluginManager,
+  PluginManagerLive,
   Router,
   RouterLive,
   localStorageKeyValue,
 } from "@bbblank/host-dom";
-import { builtins } from "./plugins";
+import { builtins, optionals } from "./plugins";
 
 declare global {
   interface Window {
@@ -27,20 +29,23 @@ declare global {
 
 const kv = localStorageKeyValue();
 
+const loadable = [...builtins, ...optionals];
+
 const kernel = createKernel({
-  capabilities: [Dom, Router, Storage],
+  capabilities: [Dom, Router, Storage, PluginManager],
   capabilityLayer: Layer.mergeAll(
     DomLive(document),
     RouterLive(window),
     PluginStorageLive.pipe(Layer.provide(kv)),
+    PluginManagerLive((): KernelView => kernel.view),
   ),
   loader: PluginLoader.fromMap(
-    new Map(builtins.map((p) => [p.manifest.id, p])),
+    new Map(loadable.map((p) => [p.manifest.id, p])),
   ),
   store: InstallStore.fromKeyValue.pipe(Layer.provide(kv)),
 });
 
-const shipped = new Set(builtins.map((p) => p.manifest.id));
+const shipped = new Set(loadable.map((p) => p.manifest.id));
 const report = await kernel.bootstrap();
 for (const f of report.failed) {
   // store 是期望态：代码里已移除的插件仍留有记录，收敛为卸载，而不是每次启动都报加载失败

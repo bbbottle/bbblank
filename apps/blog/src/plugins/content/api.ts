@@ -33,10 +33,18 @@ export interface IContentNoteService {
   listNotes: () => ReadonlyArray<ContentNote>;
   /** 按 note.id 新增或替换：正文在 contentStr 之后标注 `[id]`，并同步到 shell 的脚注 */
   upsertNote: (contentNote: ContentNote) => void;
+  /** 移除正文标记与对应脚注；id 不存在时无操作 */
+  delNote: (id: number) => void;
 }
 
 export const ContentNoteService = defineService<IContentNoteService>(
   "content.noteService",
+);
+
+/** 用户点击信件署名旁的方块；index 为方块序号（从 0 开始） */
+export const SquareClickTopic = defineTopic(
+  "content.square.click",
+  Schema.Struct({ index: Schema.Number }),
 );
 
 export const ContentNoteChangeTopic = defineTopic(
