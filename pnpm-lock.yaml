@@ -19,7 +19,7 @@ importers:
     dependencies:
       '@bbblank/host-dom':
         specifier: workspace:*
-        version: link:../../packages/host-dom
+        version: link:../../packages/host
       '@bbblank/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
@@ -49,7 +49,7 @@ importers:
         specifier: ^8.2.2
         version: 8.3.0(@types/node@20.14.0)(esbuild@0.28.1)
 
-  packages/host-dom:
+  packages/host:
     dependencies:
       '@bbblank/kernel':
         specifier: workspace:*

@@ -1,0 +1,4 @@
+
+../host/dist
+../host/node_modules
+../host/src/**/*

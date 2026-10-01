@@ -11,9 +11,13 @@ export const buildLayout = (host: HTMLElement) => {
 
   const header = el("header", host);
 
+  const main = el("main", host);
+
+  const footer = el("footer", host);
+
   return {
     headerRight: el("div", header),
-    main: el("main", host),
-    footer: el("footer", host),
+    main,
+    footer: footer,
   };
 };

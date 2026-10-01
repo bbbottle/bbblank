@@ -6,12 +6,11 @@ import { pageFor } from "./pages";
 export const renderPages = (
   host: HTMLElement,
   router: RouterFacade,
-  /** 每次重新渲染前回调（旧 DOM 即将被替换） */
-  beforeRender: () => void,
+  beforeRender?: () => void,
 ) => {
   const root = createRoot(host);
   const off = router.onChange((path) => {
-    beforeRender();
+    beforeRender?.();
     root.render(pageFor(path));
   });
   return async () => {
