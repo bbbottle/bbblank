@@ -5,7 +5,7 @@ import type { PluginEventsBus } from "@bbblank/sdk";
 import type { HtmlFacade, TrustedHtml } from "@bbblank/host-dom";
 import { ContentNoteChangeTopic, SquareClickTopic } from "./api";
 import type { ContentNote, IContentNoteService } from "./api";
-import { annotate } from "./annotate";
+import { annotate, distribute, letterFields } from "./annotate";
 import { fetchPosts } from "./posts";
 import type { Post } from "./posts";
 
@@ -61,7 +61,7 @@ const Annotated = ({
 }) => (
   <>
     {annotate(text, notes).map((s, i) =>
-      s.kind === "text" ? s.text : <sup key={`ref-${s.id}-${i}`}>[{s.id}]</sup>,
+      s.kind === "text" ? s.text : <sup key={`ref-${s.id}-${i}`}>[{s.label}]</sup>,
     )}
   </>
 );
@@ -69,17 +69,20 @@ const Annotated = ({
 export const Entry = (deps: PageDeps) => {
   const letter = deps.noteService.getLetter();
   const notes = useContentNotes(deps);
+  const fields = letterFields(letter);
+  const [openlings, body, author, date, address] = distribute(
+    fields,
+    notes,
+  ).map((ns, i) => <Annotated text={fields[i]!} notes={ns} />);
 
   return (
     <article>
-      <p>{letter.openlings}</p>
-      <p>
-        <Annotated text={letter.body} notes={notes} />
-      </p>
+      <p>{openlings}</p>
+      <p>{body}</p>
       <div className="signature" style={{ textAlign: "right" }}>
         <p style={{ display: "inline-flex", flexDirection: "column" }}>
           <span style={{ display: "inline-flex", alignItems: "center" }}>
-            <span>{letter.author}</span>
+            <span>{author}</span>
             {[0, 1].map((index) => (
               <Square
                 key={index}
@@ -87,8 +90,8 @@ export const Entry = (deps: PageDeps) => {
               />
             ))}
           </span>
-          <span>{letter.date}</span>
-          <span>{letter.address}</span>
+          <span>{date}</span>
+          <span>{address}</span>
         </p>
       </div>
     </article>
@@ -139,6 +142,12 @@ export const Blog = ({ html }: PageDeps) => {
           </article>
         </Fragment>
       ))}
+      <hr />
+      <p className="heti-meta heti-small">
+        <a data-link href="/">
+          <Square />
+        </a>
+      </p>
     </section>
   );
 };

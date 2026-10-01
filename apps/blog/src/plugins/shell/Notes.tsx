@@ -3,12 +3,15 @@ import { FooterNoteService, Note, NoteChangeTopic } from "./api";
 import { PluginEventsBus } from "@bbblank/sdk";
 import { isTrustedHtml } from "@bbblank/host-dom";
 
-export const NoteItem = ({ content }: Note) =>
+export const NoteItem = ({ content, order }: Note) =>
   isTrustedHtml(content) ? (
-    <li dangerouslySetInnerHTML={{ __html: content.html }} />
+    <li value={order} dangerouslySetInnerHTML={{ __html: content.html }} />
   ) : (
-    <li>{content}</li>
+    <li value={order}>{content}</li>
   );
+
+const byOrder = (a: Note, b: Note) =>
+  (a.order ?? Infinity) - (b.order ?? Infinity);
 
 const useNotes = (fnService: FooterNoteService, evtBus: PluginEventsBus) => {
   const [notes, setNotes] = useState<ReadonlyArray<Note>>(
@@ -36,7 +39,7 @@ export const Notes = ({
 
   return (
     <ol>
-      {notes.map((n) => (
+      {[...notes].sort(byOrder).map((n) => (
         <NoteItem key={n.id} {...n} />
       ))}
     </ol>

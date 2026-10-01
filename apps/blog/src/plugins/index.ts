@@ -12,6 +12,7 @@ import { blog } from "./blog";
 import { content } from "./content";
 import { pluginManager } from "./plugin-manager";
 import { shell } from "./shell";
+import { weather } from "./weather";
 
 /** 首次访问时自动安装 */
 export const builtins: ReadonlyArray<AnyPluginModule> = [
@@ -21,4 +22,4 @@ export const builtins: ReadonlyArray<AnyPluginModule> = [
 ];
 
 /** 随应用打包、可被加载，但只在运行时按需安装（如经 plugin-manager） */
-export const optionals: ReadonlyArray<AnyPluginModule> = [about, blog];
+export const optionals: ReadonlyArray<AnyPluginModule> = [about, blog, weather];

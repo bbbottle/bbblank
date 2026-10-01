@@ -13,6 +13,8 @@ export const NoteSchema = Schema.Struct({
   id: Schema.Number,
   /** 字符串按纯文本渲染；HTML 须经 Html capability 的 trust() 取得 TrustedHtml */
   content: Schema.Union([Schema.String, TrustedHtmlSchema]),
+  /** 显示序号：脚注按 order 升序排列并以其为编号，须与正文角标一致；缺省时排在末尾、按写入顺序编号 */
+  order: Schema.optionalKey(Schema.Number),
 });
 
 export const ShellSlots = {
