@@ -119,7 +119,7 @@ export const plugins: ReadonlyArray<PluginEntry> = [
     id: DevtoolsSourcesPluginId,
     name: "DevTools Sources",
     version: "1.0.0",
-    description: "DevTools 面板：浏览 GitHub 上 apps/blog 的源码（构建所对应的提交），语法着色与 Chrome Sources 一致。",
+    description: "DevTools 面板：显示网站的源代码。",
     builtin: false,
     load: () => import("./devtools-sources").then((m) => m.devtoolsSources),
   },
