@@ -26,13 +26,14 @@ export const about = definePlugin({
     const note = {
       id: NOTE_ID,
       content: api.caps.html.trust(
-        `1993. <abbr title="我编程" data-action="${OPEN_DEVTOOLS}" tabindex="0">程序员</abbr>.`,
+        `1993. <abbr title="偶尔编程" data-action="${OPEN_DEVTOOLS}" tabindex="0">程序员</abbr>.`,
       ),
     };
     notes.upsertNote({ contentStr: "十年前的我", note });
 
     api.events.on(FootnoteActionTopic, ({ noteId, action }) => {
-      if (noteId === NOTE_ID && action === OPEN_DEVTOOLS) api.events.emit(DevtoolsRequestTopic, {});
+      if (noteId === NOTE_ID && action === OPEN_DEVTOOLS)
+        api.events.emit(DevtoolsRequestTopic, {});
     });
 
     return () => notes.delNote(note.id);
