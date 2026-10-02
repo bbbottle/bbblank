@@ -12,3 +12,9 @@ fetchRetries: 5
 fetchRetryMintimeout: 10000
 fetchRetryMaxtimeout: 120000
 networkConcurrency: 16
+
+overrides:
+  # 最新的 1.2.5 发布未满 7 天，固定到上一版（含 @codemirror/* 的间接依赖）
+  "@lezer/highlight": 1.2.4
+  # 1.5.6 发布未满 7 天（2026-10-01），固定到上一版
+  "@lezer/javascript": 1.5.5

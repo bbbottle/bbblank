@@ -20,6 +20,7 @@ import { DevtoolsPluginId } from "./devtools/api";
 import { DevtoolsApplicationPluginId } from "./devtools-application/api";
 import { DevtoolsConsolePluginId } from "./devtools-console/api";
 import { DevtoolsNetworkPluginId } from "./devtools-network/api";
+import { DevtoolsSourcesPluginId } from "./devtools-sources/api";
 import { PluginManagerPluginId } from "./plugin-manager/api";
 import { NowPluginId } from "./now/api";
 import { ShellPluginId } from "./shell/api";
@@ -113,6 +114,14 @@ export const plugins: ReadonlyArray<PluginEntry> = [
     description: "DevTools 面板：插件加载、启用、停止各阶段耗时与瀑布图。",
     builtin: false,
     load: () => import("./devtools-network").then((m) => m.devtoolsNetwork),
+  },
+  {
+    id: DevtoolsSourcesPluginId,
+    name: "DevTools Sources",
+    version: "1.0.0",
+    description: "DevTools 面板：浏览 GitHub 上 apps/blog 的源码（构建所对应的提交），语法着色与 Chrome Sources 一致。",
+    builtin: false,
+    load: () => import("./devtools-sources").then((m) => m.devtoolsSources),
   },
   {
     id: DevtoolsApplicationPluginId,

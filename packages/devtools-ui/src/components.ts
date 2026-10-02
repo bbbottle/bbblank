@@ -84,7 +84,14 @@ export const textButton = (
 export class SplitWidget extends HTMLElement {
   readonly main = h("div", { class: "split-main" });
   readonly sidebar = h("div", { class: "split-sidebar" });
+  /** 侧栏位置：right（Elements 的 Styles 窗格）或 left（Sources 的 Navigator）；须在挂载前设置 */
+  sidebarSide: "left" | "right" = "right";
   #width = 320;
+
+  set sidebarWidth(px: number) {
+    this.#width = px;
+    this.sidebar.style.width = `${px}px`;
+  }
 
   connectedCallback() {
     if (this.childElementCount) return;
@@ -93,18 +100,24 @@ export class SplitWidget extends HTMLElement {
       onpointerdown: (e: PointerEvent) => this.#drag(e),
     });
     this.sidebar.style.width = `${this.#width}px`;
-    append(this, [this.main, resizer, this.sidebar]);
+    append(
+      this,
+      this.sidebarSide === "left"
+        ? [this.sidebar, resizer, this.main]
+        : [this.main, resizer, this.sidebar],
+    );
   }
 
   #drag(e: PointerEvent) {
     const startX = e.clientX;
     const start = this.#width;
+    const sign = this.sidebarSide === "left" ? 1 : -1;
     const target = e.currentTarget as HTMLElement;
     target.setPointerCapture(e.pointerId);
     const move = (ev: PointerEvent) => {
       this.#width = Math.max(
         160,
-        Math.min(this.clientWidth - 160, start - (ev.clientX - startX)),
+        Math.min(this.clientWidth - 160, start + sign * (ev.clientX - startX)),
       );
       this.sidebar.style.width = `${this.#width}px`;
     };
@@ -128,8 +141,24 @@ export interface TreeNode {
 export class TreeOutline extends HTMLElement {
   #nodes: ReadonlyArray<TreeNode> = [];
   #selected: string | undefined;
-  #collapsed = new Set<string>();
+  /** defaultCollapsed 为 false 时记录被折叠的节点，为 true 时记录被展开的节点 */
+  #toggled = new Set<string>();
+  /** 节点缺省折叠（如 Sources 的文件树）；缺省展开（如 Plugins 的依赖树） */
+  defaultCollapsed = false;
+  /** 点击有子节点的行时切换折叠，而不是触发 onPick（目录行） */
+  toggleOnClick = false;
   onPick: (key: string) => void = () => {};
+
+  /** 展开 keys 路径上的各级节点（按 TreeNode.key 逐级匹配） */
+  reveal(keys: ReadonlyArray<string>) {
+    let path = "";
+    for (const k of keys) {
+      path = `${path}/${k}`;
+      if (this.defaultCollapsed) this.#toggled.add(path);
+      else this.#toggled.delete(path);
+    }
+    this.#render();
+  }
 
   connectedCallback() {
     this.setAttribute("role", "tree");
@@ -146,7 +175,12 @@ export class TreeOutline extends HTMLElement {
     const rows: Array<HTMLElement> = [];
     const walk = (n: TreeNode, depth: number, path: string) => {
       const key = `${path}/${n.key}`;
-      const open = !this.#collapsed.has(key);
+      const open = this.#toggled.has(key) === this.defaultCollapsed;
+      const flip = () => {
+        if (this.#toggled.has(key)) this.#toggled.delete(key);
+        else this.#toggled.add(key);
+        this.#render();
+      };
       const toggle = n.children.length
         ? h(
             "span",
@@ -154,9 +188,7 @@ export class TreeOutline extends HTMLElement {
               class: "tree-toggle",
               onclick: (e: Event) => {
                 e.stopPropagation();
-                if (open) this.#collapsed.add(key);
-                else this.#collapsed.delete(key);
-                this.#render();
+                flip();
               },
             },
             icon(open ? "triangle-down" : "triangle-right"),
@@ -169,7 +201,8 @@ export class TreeOutline extends HTMLElement {
             class: `tree-row${n.key === this.#selected ? " selected" : ""}`,
             role: "treeitem",
             style: `padding-left: ${4 + depth * 12}px`,
-            onclick: () => this.onPick(n.key),
+            onclick: () =>
+              this.toggleOnClick && n.children.length ? flip() : this.onPick(n.key),
           },
           toggle,
           h("span", { class: "tree-label" }, n.label),

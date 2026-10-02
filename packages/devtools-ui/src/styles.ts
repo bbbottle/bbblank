@@ -16,6 +16,9 @@ const base = /* css */ `
   --default-font-family: system-ui, sans-serif;
   --monospace-font-family: ui-monospace, Menlo, monospace;
   --monospace-font-size: 11px;
+  /* design_system_tokens.css 中 .platform-mac 的取值；该类由 Chrome 在宿主上设置，此处直接采用 */
+  --source-code-font-family: monospace;
+  --source-code-font-size: 11px;
 
   all: initial;
   position: fixed;
@@ -283,6 +286,57 @@ bbdt-data-grid:focus-within .data-grid tbody tr.selected { background-color: var
 /* ---------- market ---------- */
 .market-name { display: inline-flex; align-items: center; gap: var(--sys-size-3); }
 .market-name .icon { width: 16px; height: 16px; }
+
+/* ---------- 可关闭的标签（tabbedPane.css 的 .closeable / .tabbed-pane-close-button） ---------- */
+.tabbed-pane-header-tab.closeable { padding-right: var(--sys-size-3); }
+.tabbed-pane-header-tab-icon { min-width: var(--sys-size-7); display: flex; align-items: center; margin-right: var(--sys-size-2); }
+.tabbed-pane-header-tab-icon .icon { width: 16px; height: 16px; }
+.tabbed-pane-close-button { visibility: hidden; display: inline-flex; border-radius: var(--sys-shape-corner-full); }
+.tabbed-pane-close-button .icon { width: 16px; height: 16px; }
+.tabbed-pane-close-button:hover { background-color: var(--sys-color-state-hover-on-subtle); }
+.tabbed-pane-header-tab:hover .tabbed-pane-close-button,
+.tabbed-pane-header-tab.selected .tabbed-pane-close-button { visibility: visible; }
+
+/* ---------- Sources：导航文件图标（application_tokens.css 的 --icon-file-* / --icon-folder-*） ---------- */
+.tree-label .icon.file-icon { width: 16px; height: 16px; }
+.file-icon.folder { color: var(--sys-color-on-surface-subtle); }
+.file-icon.script { color: var(--sys-color-orange-bright); }
+.file-icon.styles { color: var(--sys-color-purple-bright); }
+.file-icon.markup { color: var(--sys-color-blue-bright); }
+.file-icon.default { color: var(--sys-color-on-surface-subtle); }
+.sources-navigator { display: flex; flex-direction: column; height: 100%; }
+.sources-navigator > bbdt-tree-outline { flex: auto; overflow: auto; }
+.sources-editor { display: flex; flex-direction: column; height: 100%; }
+.sources-editor > .editor-host { flex: auto; min-height: 0; overflow: hidden; background: var(--sys-color-cdt-base-container); }
+.editor-host > .editor-view { height: 100%; }
+.editor-host > [hidden] { display: none; }
+.sources-editor > .tabbed-pane-header { border-top: 0; }
+
+/* ---------- 语法着色（code_highlighter/codeHighlighter.css，BSD-3-Clause） ---------- */
+.token-variable { color: var(--sys-color-token-variable); }
+.token-property { color: var(--sys-color-token-property); }
+.token-type { color: var(--sys-color-token-type); }
+.token-variable-special { color: var(--sys-color-token-variable-special); }
+.token-definition { color: var(--sys-color-token-definition); }
+.token-builtin { color: var(--sys-color-token-builtin); }
+.token-number { color: var(--sys-color-token-number); }
+.token-string { color: var(--sys-color-token-string); }
+.token-string-special { color: var(--sys-color-token-string-special); }
+.token-atom { color: var(--sys-color-token-atom); }
+.token-keyword { color: var(--sys-color-token-keyword); }
+.token-comment { color: var(--sys-color-token-comment); }
+.token-meta { color: var(--sys-color-token-meta); }
+.token-invalid { color: var(--sys-color-error); }
+.token-tag { color: var(--sys-color-token-tag); }
+.token-attribute { color: var(--sys-color-token-attribute); }
+.token-attribute-value { color: var(--sys-color-token-attribute-value); }
+.token-inserted { color: var(--sys-color-token-inserted); }
+.token-deleted { color: var(--sys-color-token-deleted); }
+.token-heading { color: var(--sys-color-token-variable-special); font-weight: bold; }
+.token-link { color: var(--sys-color-token-variable-special); text-decoration: underline; }
+.token-strikethrough { text-decoration: line-through; }
+.token-strong { font-weight: bold; }
+.token-emphasis { font-style: italic; }
 `;
 
 export const styles = `${tokens}\n${base}`;
