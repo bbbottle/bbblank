@@ -21,6 +21,7 @@ import { DevtoolsApplicationPluginId } from "./devtools-application/api";
 import { DevtoolsConsolePluginId } from "./devtools-console/api";
 import { DevtoolsNetworkPluginId } from "./devtools-network/api";
 import { PluginManagerPluginId } from "./plugin-manager/api";
+import { NowPluginId } from "./now/api";
 import { ShellPluginId } from "./shell/api";
 import { WeatherPluginId } from "./weather/api";
 
@@ -80,6 +81,14 @@ export const plugins: ReadonlyArray<PluginEntry> = [
     description: "长沙当前天气。",
     builtin: false,
     load: () => import("./weather").then((m) => m.weather),
+  },
+  {
+    id: NowPluginId,
+    name: "Now",
+    version: "1.0.0",
+    description: "显示当前日期与时间（YYYY-MM-DD HH:mm:ss）。",
+    builtin: false,
+    load: () => import("./now").then((m) => m.now),
   },
   {
     id: DevtoolsPluginId,
