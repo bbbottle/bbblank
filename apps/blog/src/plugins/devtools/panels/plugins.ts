@@ -1,5 +1,6 @@
 /** Plugins（对应 Elements）：左侧依赖树，右侧选中插件的详情与操作（对应 Styles 窗格） */
 import type { PluginID } from "@bbblank/sdk";
+import { SIDELOAD_PREFIX } from "@bbblank/host-dom";
 import type { PluginInfo } from "@bbblank/host-dom";
 import {
   describeError,
@@ -13,7 +14,9 @@ import {
   treeOutline,
 } from "@bbblank/devtools-ui";
 import type { Child, TreeNode } from "@bbblank/devtools-ui";
-import type { PanelFactory } from "./panel";
+import type { DevtoolsModel } from "@bbblank/devtools-ui";
+import type { DeveloperRegistry } from "../developer";
+import type { Panel } from "./panel";
 
 const section = (title: string, ...body: ReadonlyArray<Child>) =>
   h("div", { class: "section" }, h("div", { class: "section-title" }, title), h("div", { class: "section-body" }, ...body));
@@ -23,11 +26,13 @@ const kv = (rows: ReadonlyArray<readonly [string, Child]>) =>
 
 const list = (items: ReadonlyArray<Child>) => (items.length ? h("div", null, items.map((i) => h("div", null, i))) : h("span", { class: "dim" }, "无"));
 
-export const pluginsPanel: PanelFactory = (model, self) => {
+export const pluginsPanel = (model: DevtoolsModel, self: string, developers: DeveloperRegistry): Panel => {
   const counts = toolbarText("");
   const split = splitWidget();
   const tree = treeOutline();
-  split.main.append(tree);
+  /** 开发插件（经 DevtoolsDeveloper 登记，如 Playground 的草稿）：不在 Market 中展示，只能在此安装 */
+  const developer = h("div", { class: "section developer-section" });
+  split.main.append(tree, developer);
   const el = h("div", { class: "panel" }, toolbar(counts), split);
 
   let selected: string | undefined = self;
@@ -68,6 +73,7 @@ export const pluginsPanel: PanelFactory = (model, self) => {
         statusDot(p.status),
         h("span", null, p.name),
         h("span", { class: "dim mono" }, `${p.id}${p.version ? `@${p.version}` : ""}`),
+        p.id.startsWith(SIDELOAD_PREFIX) ? h("span", { class: "chip" }, "开发中") : null,
       ],
       children: model.plugins.filter((c) => c.dependencies.some((d) => d.id === p.id)).map(node),
     });
@@ -171,7 +177,52 @@ export const pluginsPanel: PanelFactory = (model, self) => {
     ];
   };
 
+  /** 开发插件安装失败的原因：此时尚无选中项，错误显示在分组内 */
+  let developerError: { readonly id: string; readonly message: string } | undefined;
+
+  const renderDeveloper = () => {
+    const entries = developers.list().filter((e) => !model.byId(e.id));
+    developer.hidden = entries.length === 0;
+    replace(
+      developer,
+      h("div", { class: "section-title" }, "可安装（仅开发者）"),
+      h(
+        "div",
+        { class: "section-body" },
+        entries.map((e) =>
+          h(
+            "div",
+            { class: "developer-entry" },
+            h("span", null, e.name),
+            h("span", { class: "dim mono" }, e.id),
+            h("span", { class: "dim" }, e.description ?? `来自 ${e.source}`),
+            textButton(
+              "安装",
+              () =>
+                run(async () => {
+                  developerError = undefined;
+                  try {
+                    await e.install();
+                    selected = e.id;
+                  } catch (err) {
+                    // 登记方抛出的普通 Error（如编译失败）直接显示 message；内核错误（带 _tag）展开字段
+                    const plain = err instanceof Error && !("_tag" in err);
+                    developerError = { id: e.id, message: plain ? err.message : describeError(err) };
+                  }
+                }),
+              { disabled: busy },
+            ),
+          ),
+        ),
+        developerError && entries.some((e) => e.id === developerError!.id)
+          ? h("div", { class: "error-text" }, `${developerError.id}：${developerError.message}`)
+          : null,
+      ),
+    );
+  };
+
   const render = () => {
+    renderDeveloper();
     const enabled = model.plugins.filter((p) => p.status === "enabled").length;
     counts.textContent = `${model.plugins.length} 个插件 · ${enabled} 个已启用`;
     if (selected && !model.byId(selected)) selected = undefined;

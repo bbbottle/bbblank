@@ -8,7 +8,7 @@ import { definePlugin, Storage } from "@bbblank/sdk";
 import type { SemVer } from "@bbblank/sdk";
 import { Dom, PluginManager, RootSlot } from "@bbblank/host-dom";
 import { DevtoolsModel } from "@bbblank/devtools-ui";
-import { DevtoolsOpenTopic, DevtoolsPanels, DevtoolsPluginId, panelSlot } from "./api";
+import { DevtoolsDeveloper, DevtoolsOpenTopic, DevtoolsPanels, DevtoolsPluginId, panelSlot } from "./api";
 import { createDevtools } from "./devtools";
 
 /** 挂在 RootSlot 中其他挂载（shell 等）之后 */
@@ -18,8 +18,9 @@ export const devtools = definePlugin({
   manifest: {
     id: DevtoolsPluginId,
     name: "DevTools",
-    version: "1.0.0" as SemVer,
-    services: { provide: [DevtoolsPanels.key] },
+    // 1.1.0：新增 devtools.developer 服务
+    version: "1.1.0" as SemVer,
+    services: { provide: [DevtoolsPanels.key, DevtoolsDeveloper.key] },
   },
   capabilities: [Dom, PluginManager, Storage],
   setup: (api) => {
@@ -52,6 +53,7 @@ export const devtools = definePlugin({
       provideSlot: (id, el) => dom.provideSlot(panelSlot(id), el),
     });
     api.services.register(DevtoolsPanels, ui.panels);
+    api.services.register(DevtoolsDeveloper, ui.developers);
 
     api.events.on(DevtoolsOpenTopic, () => ui.open());
 

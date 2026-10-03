@@ -14,7 +14,7 @@ import {
   treeOutline,
 } from "@bbblank/devtools-ui";
 import type { Child, IconName, PanelView, TreeNode } from "@bbblank/devtools-ui";
-import type { Cursor, createEditor } from "./editor";
+import type { Cursor, createCodeEditor } from "@bbblank/devtools-ui/editor";
 import { ROOT, build, fetchFile, githubUrl, listFiles } from "./repo";
 import type { SourceFile } from "./repo";
 
@@ -122,7 +122,7 @@ export const sourcesPanel = (): PanelView => {
   );
   const el = h("div", { class: "panel" }, head, split);
 
-  let editor: Promise<ReturnType<typeof createEditor>> | undefined;
+  let editor: Promise<ReturnType<typeof createCodeEditor>> | undefined;
 
   const renderTree = () => {
     if (listError) return replace(tree, h("div", { class: "empty" }, listError));
@@ -195,10 +195,13 @@ export const sourcesPanel = (): PanelView => {
       message.hidden = true;
       editorEl.hidden = false;
       // 首次打开文件时加载 CodeMirror 并创建编辑器：此时面板已挂入 devtools 的 Shadow Root，编辑器样式据此挂到同一 root
-      editor ??= import("./editor").then(({ createEditor }) =>
-        createEditor(editorEl, (c) => {
-          cursor = c;
-          renderStatus();
+      editor ??= import("@bbblank/devtools-ui/editor").then(({ createCodeEditor }) =>
+        createCodeEditor(editorEl, {
+          readOnly: true,
+          onCursor: (c) => {
+            cursor = c;
+            renderStatus();
+          },
         }),
       );
       const view = await editor;

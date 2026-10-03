@@ -3,7 +3,7 @@
  */
 import { Layer } from "effect";
 import { Storage } from "@bbblank/sdk";
-import { InstallStore, PluginStorageLive, createKernel } from "@bbblank/kernel";
+import { InstallStore, PermissionPolicy, PluginStorageLive, createKernel } from "@bbblank/kernel";
 import type { KernelView } from "@bbblank/kernel";
 import {
   Dom,
@@ -15,6 +15,11 @@ import {
   PluginManagerLive,
   Router,
   RouterLive,
+  Sideload,
+  SideloadLive,
+  SideloadLoader,
+  SideloadRegistry,
+  isSideloadId,
   localStorageKeyValue,
 } from "@bbblank/host-dom";
 import { plugins } from "./plugins";
@@ -26,13 +31,20 @@ declare global {
 }
 
 const kv = localStorageKeyValue();
+/** devtools Playground 在浏览器中编译出的插件（id 以 dev- 开头），仅存在于当前页面会话 */
+const sideload = new SideloadRegistry();
+
+const capabilities = [Dom, Router, Storage, PluginManager, Html, Sideload] as const;
+/** 宿主授权上限：所有能力最高可授予 write、服务按 manifest 声明提供（等同于信任 manifest 申请） */
+const fullAccess = Object.fromEntries(capabilities.map((c) => [c.id, "write" as const]));
 
 const kernel = createKernel({
-  capabilities: [Dom, Router, Storage, PluginManager, Html],
+  capabilities: [...capabilities],
   capabilityLayer: Layer.mergeAll(
     DomLive(document),
     RouterLive(window),
     HtmlLive(window),
+    SideloadLive(sideload),
     PluginStorageLive.pipe(Layer.provide(kv)),
     PluginManagerLive(
       (): KernelView => kernel.view,
@@ -44,8 +56,14 @@ const kernel = createKernel({
       })),
     ),
   ),
-  loader: LazyPluginLoader(new Map(plugins.map((p) => [p.id, p.load]))),
+  loader: SideloadLoader(sideload, LazyPluginLoader(new Map(plugins.map((p) => [p.id, p.load])))),
   store: InstallStore.fromKeyValue.pipe(Layer.provide(kv)),
+  // restrict 对每个插件都须给出上限（返回 undefined 即拒绝激活）。
+  // 开发插件按申请授予能力，唯 PluginManager 限为只读：不能安装、启停、卸载其他插件
+  permission: PermissionPolicy.restrict((m) => ({
+    access: isSideloadId(m.id) ? { ...fullAccess, pluginManager: "read" } : fullAccess,
+    provide: ["*"],
+  })),
 });
 
 const shipped = new Set(plugins.map((p) => p.id));
@@ -56,7 +74,8 @@ for (const f of report.failed) {
     await kernel.view
       .uninstall(f.id)
       .catch((e) => console.error("[bbking] prune failed", e));
-    console.info(`[bbking] pruned removed plugin: ${f.id}`);
+    // 开发插件（dev-）只存在于上一次页面会话：刷新后其模块已不存在，按预期清理，不再提示
+    if (!isSideloadId(f.id)) console.info(`[bbking] pruned removed plugin: ${f.id}`);
   } else {
     console.warn(`[bbking] ${f.id} failed: ${f.error.tag} ${f.error.message}`);
   }

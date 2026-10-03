@@ -39,3 +39,25 @@ export const DevtoolsPanels = defineService<DevtoolsPanelsService>("devtools.pan
 
 /** 面板插件经 Dom.mount 挂载内容的插槽 */
 export const panelSlot = (id: string): Slot => defineSlot(`devtools.panel.${id}`);
+
+/**
+ * 开发插件（如 Playground 的草稿）：不在插件目录中、不出现在 Market，
+ * 未安装时列在 Plugins 面板的「可安装（仅开发者）」分组；安装后与其他插件一样在依赖树中启停、卸载。
+ */
+export interface DeveloperPluginEntry {
+  /** 安装后的插件 id（如 dev-hello）；已安装时不再列出 */
+  readonly id: PluginID;
+  readonly name: string;
+  readonly description?: string;
+  /** 来源，显示在条目上（如 "Playground"） */
+  readonly source: string;
+  /** 安装：由登记方完成（如编译草稿、登记模块并经 PluginManager 安装）；失败时 reject，错误显示在 Plugins 面板中 */
+  install(): Promise<void>;
+}
+
+export interface DevtoolsDeveloperService {
+  /** 登记或替换（按 id）一个可安装的开发插件；返回的 Cleanup 移除登记 */
+  register(entry: DeveloperPluginEntry): Cleanup;
+}
+
+export const DevtoolsDeveloper = defineService<DevtoolsDeveloperService>("devtools.developer");

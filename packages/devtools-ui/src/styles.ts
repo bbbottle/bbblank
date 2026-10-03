@@ -11,6 +11,7 @@ const base = /* css */ `
   --icon-default: var(--sys-color-on-surface-subtle);
   --icon-default-hover: var(--sys-color-on-surface);
   --text-link: var(--sys-color-primary);
+  --drop-shadow: 0 0 0 1px rgb(0 0 0 / 5%), 0 2px 4px rgb(0 0 0 / 20%), 0 2px 6px rgb(0 0 0 / 10%);
   --sys-typescale-body4-size: 12px;
   --sys-typescale-body4-line-height: 16px;
   --default-font-family: system-ui, sans-serif;
@@ -212,6 +213,10 @@ bbdt-data-grid:focus-within .data-grid tbody tr.selected { background-color: var
 .banner.error { background: var(--sys-color-surface-error); color: var(--sys-color-on-surface-error); }
 .banner .actions { padding: var(--sys-size-4) 0 0; }
 .error-text { color: var(--sys-color-error); }
+.split-main > .developer-section { border-top: var(--sys-size-1) solid var(--sys-color-divider); border-bottom: 0; }
+.developer-section[hidden] { display: none; }
+.developer-entry { display: flex; align-items: center; gap: var(--sys-size-4); min-height: 28px; }
+.developer-entry > .dim:nth-of-type(3) { flex: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ok-text { color: var(--sys-color-green); }
 
 /* ---------- console ---------- */
@@ -311,6 +316,46 @@ bbdt-data-grid:focus-within .data-grid tbody tr.selected { background-color: var
 .editor-host > .editor-view { height: 100%; }
 .editor-host > [hidden] { display: none; }
 .sources-editor > .tabbed-pane-header { border-top: 0; }
+
+/* ---------- 可折叠窗格（viewContainers.css） ---------- */
+.expandable-view-title {
+  display: flex; align-items: center; height: var(--sys-size-10); padding: 0 5px;
+  background-color: var(--sys-color-surface2); white-space: nowrap; overflow: hidden; position: relative;
+  border-bottom: var(--sys-size-1) solid transparent; cursor: default; user-select: none;
+}
+.expandable-view-title.expanded, .expandable-view:last-child > .expandable-view-title { border-bottom: var(--sys-size-1) solid var(--sys-color-divider); }
+.expandable-view-title:focus-visible { outline: none; background-color: var(--sys-color-state-focus-highlight); }
+.title-expand-icon { display: inline-flex; margin-right: var(--sys-size-2); }
+.title-expand-icon .icon { width: 14px; height: 14px; }
+.expandable-view-body[hidden] { display: none; }
+.expandable-view-title .count { margin-left: var(--sys-size-3); color: var(--sys-color-on-surface-subtle); }
+.split-resizer[hidden], .split-sidebar[hidden] { display: none; }
+/* 嵌套分栏（三栏布局）：内层须撑满外层主区，否则高度随内容增长，编辑器失去自身的滚动区域，
+   光标滚动会连带滚动外层容器，把标签栏与侧栏移出可视区域 */
+.split-main > bbdt-split-widget { height: 100%; }
+.split-main:has(> .sources-editor), .split-main:has(> bbdt-split-widget) { overflow: hidden; }
+
+/* ---------- Playground ---------- */
+.playground-sidebar { display: flex; flex-direction: column; height: 100%; overflow: auto; }
+.playground-sidebar > .toolbar { flex: none; }
+.playground-plugin { padding: var(--sys-size-3) var(--sys-size-6); }
+.playground-plugin > .kv { margin: 0; }
+.playground-problems { overflow: auto; }
+.playground-problems > .error-text { padding: var(--sys-size-2) var(--sys-size-6); white-space: pre-wrap; }
+.playground-problems-empty { padding: var(--sys-size-3) 0; text-align: center; font-style: italic; }
+.playground-problem { display: flex; align-items: flex-start; gap: var(--sys-size-3); padding: 2px var(--sys-size-6); cursor: default; }
+.playground-problem:hover { background: var(--sys-color-state-hover-on-subtle); }
+.playground-problem .error-icon { width: 14px; height: 14px; margin-top: 1px; color: var(--sys-color-error); flex: none; }
+.playground-problem > .mono { flex: none; color: var(--sys-color-token-subtle); }
+/* 标签栏两端的显示 / 隐藏侧栏按钮 */
+.tabbed-pane-header > .tabbed-pane-side-button { align-self: center; flex: none; }
+/* 导航空状态的新建入口（Overrides 的「+ Select folder for overrides」） */
+.navigator-add {
+  display: inline-flex; align-items: center; gap: var(--sys-size-3); margin: var(--sys-size-3) var(--sys-size-6);
+  padding: 0; border: 0; background: none; color: var(--sys-color-primary); cursor: pointer;
+}
+.navigator-add .icon { width: 16px; height: 16px; color: inherit; }
+.navigator-add:hover { text-decoration: underline; }
 
 /* ---------- 语法着色（code_highlighter/codeHighlighter.css，BSD-3-Clause） ---------- */
 .token-variable { color: var(--sys-color-token-variable); }

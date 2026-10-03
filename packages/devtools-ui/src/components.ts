@@ -87,6 +87,20 @@ export class SplitWidget extends HTMLElement {
   /** 侧栏位置：right（Elements 的 Styles 窗格）或 left（Sources 的 Navigator）；须在挂载前设置 */
   sidebarSide: "left" | "right" = "right";
   #width = 320;
+  readonly #resizer = h("div", {
+    class: "split-resizer",
+    onpointerdown: (e: PointerEvent) => this.#drag(e),
+  });
+
+  get sidebarShown() {
+    return !this.sidebar.hidden;
+  }
+
+  /** 显示或隐藏侧栏（对应 Chrome 标签栏两端的「显示 / 隐藏导航栏、调试栏」按钮） */
+  set sidebarShown(shown: boolean) {
+    this.sidebar.hidden = !shown;
+    this.#resizer.hidden = !shown;
+  }
 
   set sidebarWidth(px: number) {
     this.#width = px;
@@ -95,10 +109,7 @@ export class SplitWidget extends HTMLElement {
 
   connectedCallback() {
     if (this.childElementCount) return;
-    const resizer = h("div", {
-      class: "split-resizer",
-      onpointerdown: (e: PointerEvent) => this.#drag(e),
-    });
+    const resizer = this.#resizer;
     this.sidebar.style.width = `${this.#width}px`;
     append(
       this,
@@ -129,6 +140,30 @@ export class SplitWidget extends HTMLElement {
     target.addEventListener("pointerup", up);
   }
 }
+
+// ---------- 可折叠窗格（viewContainers.css 的 expandable-view-title，如 Sources 右栏的 Watch / Breakpoints） ----------
+
+export const expandableSection = (title: Child | ReadonlyArray<Child>, body: HTMLElement, expanded = true) => {
+  const arrow = h("span", { class: "title-expand-icon" });
+  const head = h("div", { class: "expandable-view-title", role: "button", tabindex: "0", "aria-expanded": String(expanded) }, arrow, title);
+  const set = (open: boolean) => {
+    expanded = open;
+    head.classList.toggle("expanded", open);
+    head.setAttribute("aria-expanded", String(open));
+    replace(arrow, icon(open ? "triangle-down" : "triangle-right"));
+    body.hidden = !open;
+  };
+  head.onclick = () => set(!expanded);
+  head.onkeydown = (e: KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      set(!expanded);
+    }
+  };
+  body.classList.add("expandable-view-body");
+  set(expanded);
+  return h("div", { class: "expandable-view" }, head, body);
+};
 
 // ---------- TreeOutline ----------
 

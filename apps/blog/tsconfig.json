@@ -9,11 +9,13 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "paths": {
       "@bbblank/sdk": ["../../packages/sdk/src/index.ts"],
       "@bbblank/kernel": ["../../packages/kernel/src/index.ts"],
       "@bbblank/host-dom": ["../../packages/host/src/index.ts"],
+      "@bbblank/devtools-ui/editor": ["../../packages/devtools-ui/src/editor.ts"],
       "@bbblank/devtools-ui": ["../../packages/devtools-ui/src/index.ts"]
     }
   },

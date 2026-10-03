@@ -23,6 +23,7 @@ import { DevtoolsNetworkPluginId } from "./devtools-network/api";
 import { DevtoolsSourcesPluginId } from "./devtools-sources/api";
 import { PluginManagerPluginId } from "./plugin-manager/api";
 import { NowPluginId } from "./now/api";
+import { PlaygroundPluginId } from "./playground/api";
 import { ShellPluginId } from "./shell/api";
 import { WeatherPluginId } from "./weather/api";
 
@@ -94,7 +95,7 @@ export const plugins: ReadonlyArray<PluginEntry> = [
   {
     id: DevtoolsPluginId,
     name: "DevTools",
-    version: "1.0.0",
+    version: "1.1.0",
     description: "bbki.ng 开发者工具。",
     builtin: false,
     load: () => import("./devtools").then((m) => m.devtools),
@@ -122,6 +123,15 @@ export const plugins: ReadonlyArray<PluginEntry> = [
     description: "DevTools 面板：显示网站的源代码。",
     builtin: false,
     load: () => import("./devtools-sources").then((m) => m.devtoolsSources),
+  },
+  {
+    id: PlaygroundPluginId,
+    name: "DevTools Playground",
+    version: "0.1.0",
+    description:
+      "DevTools 面板：在浏览器中为 bbki.ng 开发插件（编辑、编译、运行）。",
+    builtin: false,
+    load: () => import("./playground").then((m) => m.playground),
   },
   {
     id: DevtoolsApplicationPluginId,

@@ -21,6 +21,7 @@ import {
 import type { DevtoolsModel, PanelView } from "@bbblank/devtools-ui";
 import type { DevtoolsPanelsService, PanelSpec } from "./api";
 import { marketPanel } from "./panels/market";
+import { createDeveloperRegistry } from "./developer";
 import { pluginsPanel } from "./panels/plugins";
 
 const MIN_HEIGHT = 120;
@@ -99,8 +100,9 @@ export const createDevtools = (
   // ---------- 标签 ----------
 
   // 内置面板：Plugins 与 Market（安装入口不能随面板插件被卸载）；数据来自 devtools 自己的 model
+  const developers = createDeveloperRegistry();
   const builtins = new Map<string, PanelView>([
-    [HOME, pluginsPanel(model, self)],
+    [HOME, pluginsPanel(model, self, developers)],
     ["market", marketPanel(model)],
   ]);
   const tabs = new Map<string, Tab>();
@@ -244,6 +246,7 @@ export const createDevtools = (
   const offModel = model.onChange((what) => {
     if (what === "plugins") flush();
   });
+  const offDevelopers = developers.onChange(flush);
 
   const open = () => {
     if (!host.hidden) return;
@@ -271,5 +274,15 @@ export const createDevtools = (
   );
   setHeight(height);
 
-  return { host, panels, open, close, dispose: offModel };
+  return {
+    host,
+    panels,
+    developers: developers.service,
+    open,
+    close,
+    dispose: () => {
+      offModel();
+      offDevelopers();
+    },
+  };
 };
