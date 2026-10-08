@@ -316,7 +316,17 @@ bbdt-data-grid:focus { outline: none; }
 .settings-title { padding: 0 var(--sys-size-6); font-weight: var(--ref-typeface-weight-medium); }
 .settings-hint { padding: var(--sys-size-3) var(--sys-size-6); color: var(--sys-color-on-surface-subtle); }
 .settings-row { display: flex; align-items: center; gap: var(--sys-size-4); padding: var(--sys-size-3) var(--sys-size-6); }
-.settings-row input[type="color"] { width: 32px; height: 20px; padding: 0; border: 0; background: none; }
+/* 颜色控件：清除各平台的默认外观（iOS Safari 的 swatch 为圆形，在 32×20 的控件中会被拉伸为椭圆），
+   外框与内部 swatch 均显式设为小圆角矩形 */
+.settings-row input[type="color"] {
+  -webkit-appearance: none; appearance: none; flex: none;
+  width: 32px; height: 20px; padding: 0; overflow: hidden; cursor: pointer;
+  border: var(--sys-size-1) solid var(--sys-color-neutral-outline); border-radius: var(--sys-shape-corner-extra-small);
+  background: none;
+}
+.settings-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+.settings-row input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 0; }
+.settings-row input[type="color"]::-moz-color-swatch { border: 0; border-radius: 0; }
 
 /* ---------- application ---------- */
 .app-layout { flex: auto; display: flex; min-height: 0; }
