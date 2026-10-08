@@ -2,8 +2,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { HtmlFacade, TrustedHtml } from "@bbblank/host-dom";
-import { fetchPosts } from "./posts";
-import type { Post } from "./posts";
+import type { Post, PostsService } from "../content/api";
 
 const RECENT_POSTS = 4;
 
@@ -31,12 +30,12 @@ const Square = ({
   ></span>
 );
 
-const Blog = ({ html }: { readonly html: HtmlFacade }) => {
+const Blog = ({ html, posts }: { readonly html: HtmlFacade; readonly posts: PostsService }) => {
   const [state, setState] = useState<PostsState>({ kind: "loading" });
 
   useEffect(() => {
     const ctrl = new AbortController();
-    fetchPosts(RECENT_POSTS, ctrl.signal).then(
+    posts.recent(RECENT_POSTS, ctrl.signal).then(
       (posts) =>
         setState({
           kind: "ready",
@@ -48,7 +47,7 @@ const Blog = ({ html }: { readonly html: HtmlFacade }) => {
       },
     );
     return () => ctrl.abort();
-  }, [html]);
+  }, [html, posts]);
 
   if (state.kind === "loading") return;
   if (state.kind === "error") return <p>文章加载失败：{state.message}</p>;
@@ -76,8 +75,8 @@ const Blog = ({ html }: { readonly html: HtmlFacade }) => {
 };
 
 /** 在 host 中渲染 /blog 页面；返回卸载函数 */
-export const renderBlog = (host: HTMLElement, html: HtmlFacade) => {
+export const renderBlog = (host: HTMLElement, html: HtmlFacade, posts: PostsService) => {
   const root = createRoot(host);
-  root.render(<Blog html={html} />);
+  root.render(<Blog html={html} posts={posts} />);
   return () => root.unmount();
 };

@@ -22,6 +22,7 @@ import { DevtoolsConsolePluginId } from "./devtools-console/api";
 import { DevtoolsNetworkPluginId } from "./devtools-network/api";
 import { DevtoolsSourcesPluginId } from "./devtools-sources/api";
 import { PluginManagerPluginId } from "./plugin-manager/api";
+import { LittleCrowPluginId } from "./little-crow/api";
 import { NowPluginId } from "./now/api";
 import { PlaygroundPluginId } from "./playground/api";
 import { ShellPluginId } from "./shell/api";
@@ -47,7 +48,7 @@ export const plugins: ReadonlyArray<PluginEntry> = [
   {
     id: ContentPluginId,
     name: "Content",
-    version: "1.1.0",
+    version: "1.2.0",
     description: "按路由渲染信件，提供内容笔记与页面路由登记服务。",
     builtin: true,
     load: () => import("./content").then((m) => m.content),
@@ -71,7 +72,7 @@ export const plugins: ReadonlyArray<PluginEntry> = [
   {
     id: BlogPluginId,
     name: "Blog",
-    version: "1.1.0",
+    version: "1.2.0",
     description: "组装的文字。",
     builtin: false,
     load: () => import("./blog").then((m) => m.blog),
@@ -91,6 +92,14 @@ export const plugins: ReadonlyArray<PluginEntry> = [
     description: "显示当前日期与时间（YYYY-MM-DD HH:mm:ss）。",
     builtin: false,
     load: () => import("./now").then((m) => m.now),
+  },
+  {
+    id: LittleCrowPluginId,
+    name: "Little Crow",
+    version: "1.1.0",
+    description: "小乌鸦合集（语录）。",
+    builtin: false,
+    load: () => import("./little-crow").then((m) => m.littleCrow),
   },
   {
     id: DevtoolsPluginId,

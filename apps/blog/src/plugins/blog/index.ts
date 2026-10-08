@@ -9,6 +9,7 @@ import { Dom, Html } from "@bbblank/host-dom";
 import {
   ContentNoteService,
   ContentPluginId,
+  ContentPosts,
   ContentRoutes,
   routeSlot,
 } from "../content/api";
@@ -22,20 +23,21 @@ export const blog = definePlugin({
   manifest: {
     id: BlogPluginId,
     name: "Blog",
-    version: "1.1.1" as SemVer,
-    // content.routes 自 content 1.1.0 起提供
-    dependencies: [{ id: ContentPluginId, range: "^1.1.0" }],
+    version: "1.2.0" as SemVer,
+    // content.posts 自 content 1.2.0 起提供
+    dependencies: [{ id: ContentPluginId, range: "^1.2.0" }],
   },
   capabilities: [Html, Dom],
   setup: async (api) => {
     const { html, dom } = api.caps;
-    const [notes, routes] = await Promise.all([
+    const [notes, routes, posts] = await Promise.all([
       api.services.get(ContentNoteService),
       api.services.get(ContentRoutes),
+      api.services.get(ContentPosts),
     ]);
 
     api.lifecycle.addCleanup(routes.register(ROUTE));
-    dom.mount(routeSlot(ROUTE), (host) => renderBlog(host, html));
+    dom.mount(routeSlot(ROUTE), (host) => renderBlog(host, html, posts));
 
     const note: Readonly<Note> = {
       id: 2,
