@@ -10,6 +10,7 @@ import {
   toolbar,
   toolbarButton,
   toolbarFilter,
+  tabOverflow,
   toolbarText,
   treeOutline,
 } from "@bbblank/devtools-ui";
@@ -95,6 +96,8 @@ export const sourcesPanel = (): PanelView => {
   );
 
   const tabs = h("div", { class: "tabbed-pane-header-tabs", role: "tablist" });
+  // 窄屏放不下的文件标签收进「>>」，点击弹出系统菜单
+  const overflow = tabOverflow(tabs, (path) => void show(path));
   const message = h("div", { class: "empty" });
   const editorEl = h("div", { class: "editor-view", hidden: true });
   const editorHost = h("div", { class: "editor-host" }, message, editorEl);
@@ -103,7 +106,7 @@ export const sourcesPanel = (): PanelView => {
   const editorPane = h(
     "div",
     { class: "sources-editor" },
-    h("div", { class: "tabbed-pane-header" }, tabs),
+    h("div", { class: "tabbed-pane-header" }, tabs, overflow.el),
     editorHost,
     h("div", { class: "status-bar" }, position, origin),
   );
@@ -132,7 +135,11 @@ export const sourcesPanel = (): PanelView => {
     if (filter.trim()) for (const f of files) tree.reveal(f.path.slice(ROOT.length).split("/").slice(0, -1));
   };
 
-  const renderTabs = () =>
+  const renderTabs = () => {
+    renderTabStrip();
+    overflow.update();
+  };
+  const renderTabStrip = () =>
     replace(
       tabs,
       open.map((path) => {
@@ -144,6 +151,8 @@ export const sourcesPanel = (): PanelView => {
             role: "tab",
             title: path,
             "aria-selected": String(path === active),
+            "data-key": path,
+            "data-title": path.slice(path.lastIndexOf("/") + 1),
             onclick: () => void show(path),
           },
           h("span", { class: "tabbed-pane-header-tab-icon" }, fileIcon(name)),

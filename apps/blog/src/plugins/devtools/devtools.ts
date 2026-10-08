@@ -15,6 +15,7 @@ import {
   registerComponents,
   replace,
   styles,
+  tabOverflow,
   textButton,
   toolbarButton,
 } from "@bbblank/devtools-ui";
@@ -97,6 +98,27 @@ export const createDevtools = (
     h("div", { class: "actions" }, textButton("恢复默认", () => setSeed(DEFAULT_SEED, true))),
   );
 
+  // 设置菜单：点击菜单与齿轮按钮之外的任意位置（含页面本身）或按 Esc 关闭。
+  // 菜单位于 Shadow DOM 内，事件在 document 上被重定向到宿主元素，须用 composedPath() 判断真实目标
+  const gearButton = toolbarButton("gear", "设置", () => (settings.hidden ? openSettings() : closeSettings()));
+  const onOutside = (e: Event) => {
+    const path = e.composedPath();
+    if (!path.includes(settings) && !path.includes(gearButton)) closeSettings();
+  };
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === "Escape") closeSettings();
+  };
+  const openSettings = () => {
+    settings.hidden = false;
+    document.addEventListener("pointerdown", onOutside, true);
+    document.addEventListener("keydown", onKey, true);
+  };
+  const closeSettings = () => {
+    settings.hidden = true;
+    document.removeEventListener("pointerdown", onOutside, true);
+    document.removeEventListener("keydown", onKey, true);
+  };
+
   // ---------- 标签 ----------
 
   // 内置面板：Plugins 与 Market（安装入口不能随面板插件被卸载）；数据来自 devtools 自己的 model
@@ -116,7 +138,9 @@ export const createDevtools = (
   const ordered = () => [...tabs.values()].sort((a, b) => a.order - b.order);
   const isShown = (id: string) => !host.hidden && id === current;
 
-  const renderTabs = () =>
+  // 窄屏（如移动端）放不下的标签收进「>>」，点击弹出系统菜单
+  const overflow = tabOverflow(tabStrip, (id) => select(id));
+  const renderTabs = () => {
     replace(
       tabStrip,
       ordered().map((t) =>
@@ -126,6 +150,8 @@ export const createDevtools = (
             class: `tabbed-pane-header-tab${t.id === current ? " selected" : ""}`,
             role: "tab",
             "aria-selected": String(t.id === current),
+            "data-key": t.id,
+            "data-title": t.badge ? `${t.title}（${t.badge}）` : t.title,
             onclick: () => select(t.id),
           },
           t.title,
@@ -133,6 +159,8 @@ export const createDevtools = (
         ),
       ),
     );
+    overflow.update();
+  };
 
   /** 选中项或抽屉开合变化后，通知可见性改变的面板 */
   const notify = (before: ReadonlySet<string>) => {
@@ -228,10 +256,11 @@ export const createDevtools = (
       "div",
       { class: "tabbed-pane-header" },
       tabStrip,
+      overflow.el,
       h(
         "div",
         { class: "tabbed-pane-right" },
-        toolbarButton("gear", "设置", () => (settings.hidden = !settings.hidden)),
+        gearButton,
         toolbarButton("cross", "关闭 DevTools", () => close()),
       ),
     ),
@@ -257,6 +286,7 @@ export const createDevtools = (
     notify(before);
   };
   const close = () => {
+    closeSettings();
     if (host.hidden) return;
     const before = visible();
     host.hidden = true;
@@ -281,6 +311,7 @@ export const createDevtools = (
     open,
     close,
     dispose: () => {
+      closeSettings();
       offModel();
       offDevelopers();
     },

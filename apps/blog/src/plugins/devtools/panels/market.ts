@@ -45,17 +45,11 @@ export const marketPanel = (model: DevtoolsModel): PanelView => {
         cell: (c) =>
           h("span", { class: "market-name" }, icon("extension"), c.name),
       },
-      { id: "id", title: "ID", width: "14%", cell: (c) => c.id },
-      { id: "version", title: "版本", width: "8%", cell: (c) => c.version },
-      {
-        id: "description",
-        title: "描述",
-        cell: (c) => h("span", { title: c.description }, c.description ?? ""),
-      },
+      // 状态 / 安装按钮放在第 2 列：窄屏横向滚动时无需滚到最右侧即可操作
       {
         id: "action",
-        title: "",
-        width: "160px",
+        title: "状态",
+        width: "140px",
         cell: (c) => {
           const installed = model.byId(c.id);
           if (installed)
@@ -80,6 +74,13 @@ export const marketPanel = (model: DevtoolsModel): PanelView => {
               : null,
           ];
         },
+      },
+      { id: "id", title: "ID", width: "14%", cell: (c) => c.id },
+      { id: "version", title: "版本", width: "8%", cell: (c) => c.version },
+      {
+        id: "description",
+        title: "描述",
+        cell: (c) => h("span", { title: c.description }, c.description ?? ""),
       },
     ];
     // 未安装的排在前面

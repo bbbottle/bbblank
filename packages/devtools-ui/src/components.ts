@@ -79,6 +79,134 @@ export const textButton = (
     label,
   );
 
+// ---------- 标签溢出（tabbedPane 的 >> 下拉） ----------
+
+/**
+ * 标签栏放不下时，把末尾的标签收进「>>」按钮（选中的标签始终保留）。标签元素须带 data-key 与 data-title。
+ * - 鼠标设备：点击弹出页面内菜单（softContextMenu.css），固定在按钮下方（下方空间不足时在上方），与按钮右对齐；
+ * - 触屏设备（pointer: coarse）：按钮上覆盖原生 <select>，点击弹出系统选择器。
+ * 原生菜单在桌面上由操作系统定位（macOS 会把当前项对齐到控件上，菜单覆盖按钮），无法与按钮对齐，故只用于触屏。
+ * strip 尺寸变化时自动重新计算；标签重新渲染后调用 update()。
+ */
+export const tabOverflow = (strip: HTMLElement, onSelect: (key: string) => void) => {
+  const coarse = matchMedia("(pointer: coarse)");
+  let hiddenTabs: ReadonlyArray<HTMLElement> = [];
+  const menu = h("div", { class: "soft-context-menu", role: "menu", hidden: true });
+  const onOutside = (e: Event) => {
+    const path = e.composedPath();
+    if (!path.includes(menu) && !path.includes(el)) closeMenu();
+  };
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === "Escape") closeMenu();
+  };
+  const closeMenu = () => {
+    menu.hidden = true;
+    menu.remove();
+    document.removeEventListener("pointerdown", onOutside, true);
+    document.removeEventListener("keydown", onKey, true);
+  };
+  const openMenu = () => {
+    replace(
+      menu,
+      hiddenTabs.map((t) =>
+        h(
+          "button",
+          {
+            class: "soft-context-menu-item",
+            role: "menuitem",
+            onclick: () => {
+              closeMenu();
+              onSelect(t.dataset.key!);
+            },
+          },
+          t.dataset.title ?? t.textContent ?? "",
+        ),
+      ),
+    );
+    // 挂在按钮所在的根（devtools 的 Shadow Root）下，以 fixed 定位相对视口放置
+    (el.getRootNode() as ShadowRoot | Document).append(menu);
+    menu.hidden = false;
+    const b = el.getBoundingClientRect();
+    const m = menu.getBoundingClientRect();
+    const below = innerHeight - b.bottom;
+    menu.style.maxHeight = `${Math.max(below, b.top) - 8}px`;
+    menu.style.top = below >= m.height || below >= b.top ? `${b.bottom}px` : `${Math.max(4, b.top - Math.min(m.height, b.top - 8))}px`;
+    menu.style.left = `${Math.max(4, Math.min(b.right - m.width, innerWidth - m.width - 4))}px`;
+    document.addEventListener("pointerdown", onOutside, true);
+    document.addEventListener("keydown", onKey, true);
+    (menu.firstElementChild as HTMLElement | null)?.focus();
+  };
+  const select = h("select", {
+    class: "tabbed-pane-overflow-select",
+    "aria-label": "更多标签",
+    // 桌面 Chrome（含设备模拟）绘制的下拉菜单与 <select> 的起始边对齐：ltr 时左对齐并向右展开，
+    // 按钮紧靠右侧时菜单越出视口；rtl 时改为右对齐、向左展开，与「>>」按钮右缘对齐。真机的系统选择器不受影响
+    dir: "rtl",
+    onchange: () => {
+      const key = select.value;
+      select.value = "";
+      if (key) onSelect(key);
+    },
+  });
+  const el = h(
+    "div",
+    {
+      class: "tabbed-pane-header-tabs-drop-down-container",
+      hidden: true,
+      title: "更多标签",
+      role: "button",
+      tabindex: "0",
+      "aria-haspopup": "menu",
+      onclick: () => {
+        if (coarse.matches) return; // 触屏由覆盖其上的原生 <select> 处理
+        if (menu.hidden) openMenu();
+        else closeMenu();
+      },
+      onkeydown: (e: KeyboardEvent) => {
+        if ((e.key === "Enter" || e.key === " ") && !coarse.matches) {
+          e.preventDefault();
+          openMenu();
+        }
+      },
+    },
+    icon("chevron-double-right", "chevron-icon"),
+    select,
+  );
+
+  const update = () => {
+    const tabs = [...strip.children].filter((c): c is HTMLElement => c instanceof HTMLElement && !!c.dataset.key);
+    for (const t of tabs) t.hidden = false;
+    el.hidden = true;
+    hiddenTabs = [];
+    const avail = strip.clientWidth;
+    const widths = tabs.map((t) => t.offsetWidth);
+    if (!avail || widths.reduce((a, b) => a + b, 0) <= avail) return;
+    el.hidden = false;
+    const room = strip.clientWidth; // 按钮出现后 strip 变窄
+    const selected = tabs.findIndex((t) => t.classList.contains("selected"));
+    let used = selected >= 0 ? widths[selected]! : 0;
+    const hidden: Array<HTMLElement> = [];
+    tabs.forEach((t, i) => {
+      if (i === selected) return;
+      if (used + widths[i]! <= room) used += widths[i]!;
+      else {
+        t.hidden = true;
+        hidden.push(t);
+      }
+    });
+    hiddenTabs = hidden;
+    if (!menu.hidden) closeMenu();
+    replace(
+      select,
+      h("option", { value: "", disabled: true, selected: true }, "更多标签"),
+      hidden.map((t) => h("option", { value: t.dataset.key! }, t.dataset.title ?? t.textContent ?? "")),
+    );
+  };
+
+  new ResizeObserver(() => update()).observe(strip);
+  return { el, update };
+};
+
 // ---------- SplitWidget：主区 + 可拖动宽度的侧栏 ----------
 
 export class SplitWidget extends HTMLElement {
@@ -107,7 +235,26 @@ export class SplitWidget extends HTMLElement {
     this.sidebar.style.width = `${px}px`;
   }
 
+  /** 主区至少保留 120 px 且不少于容器宽度的 40%；侧栏不少于 100 px（窄屏上侧栏自动收紧） */
+  static readonly MIN_MAIN = 120;
+  static readonly MIN_SIDEBAR = 100;
+
+  #clamp(px: number) {
+    const w = this.clientWidth;
+    const max = w ? w - Math.max(SplitWidget.MIN_MAIN, w * 0.4) : px;
+    return Math.max(SplitWidget.MIN_SIDEBAR, Math.min(max, px));
+  }
+
+  readonly #observer = new ResizeObserver(() => {
+    this.sidebar.style.width = `${this.#clamp(this.#width)}px`;
+  });
+
+  disconnectedCallback() {
+    this.#observer.disconnect();
+  }
+
   connectedCallback() {
+    this.#observer.observe(this);
     if (this.childElementCount) return;
     const resizer = this.#resizer;
     this.sidebar.style.width = `${this.#width}px`;
@@ -121,15 +268,13 @@ export class SplitWidget extends HTMLElement {
 
   #drag(e: PointerEvent) {
     const startX = e.clientX;
-    const start = this.#width;
+    // 从当前显示的宽度开始（窄屏上显示宽度可能已被收紧，小于记录的宽度）
+    const start = this.sidebar.getBoundingClientRect().width;
     const sign = this.sidebarSide === "left" ? 1 : -1;
     const target = e.currentTarget as HTMLElement;
     target.setPointerCapture(e.pointerId);
     const move = (ev: PointerEvent) => {
-      this.#width = Math.max(
-        160,
-        Math.min(this.clientWidth - 160, start + sign * (ev.clientX - startX)),
-      );
+      this.#width = this.#clamp(start + sign * (ev.clientX - startX));
       this.sidebar.style.width = `${this.#width}px`;
     };
     const up = () => {
@@ -266,6 +411,46 @@ export interface Column<R> {
 
 export class DataGrid<R = unknown> extends HTMLElement {
   onPick: (key: string) => void = () => {};
+  /** 用户拖动后的列宽（px，按列 id）；重新渲染时沿用 */
+  readonly #widths = new Map<string, number>();
+  readonly #cols: Array<HTMLTableColElement> = [];
+
+  /**
+   * 拖动第 i 列右缘（dataGrid.css 的 .data-grid-resizer）：第 i 列与第 i+1 列此消彼长，表格总宽不变；
+   * 开始拖动时把各列当前宽度固定为 px。
+   */
+  #startResize(e: PointerEvent, i: number, columns: ReadonlyArray<Column<R>>) {
+    e.preventDefault();
+    e.stopPropagation();
+    const ths = [...this.querySelectorAll<HTMLTableCellElement>("thead th")];
+    ths.forEach((th, j) => {
+      this.#widths.set(columns[j]!.id, th.offsetWidth);
+      this.#cols[j]!.style.width = `${th.offsetWidth}px`;
+    });
+    const a = columns[i]!.id;
+    const b = columns[i + 1]!.id;
+    const startX = e.clientX;
+    const wa = this.#widths.get(a)!;
+    const wb = this.#widths.get(b)!;
+    const MIN = 32;
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
+    const move = (ev: PointerEvent) => {
+      const dx = Math.max(MIN - wa, Math.min(wb - MIN, ev.clientX - startX));
+      this.#widths.set(a, wa + dx);
+      this.#widths.set(b, wb - dx);
+      this.#cols[i]!.style.width = `${wa + dx}px`;
+      this.#cols[i + 1]!.style.width = `${wb - dx}px`;
+    };
+    const up = () => {
+      target.removeEventListener("pointermove", move);
+      target.removeEventListener("pointerup", up);
+      target.removeEventListener("pointercancel", up);
+    };
+    target.addEventListener("pointermove", move);
+    target.addEventListener("pointerup", up);
+    target.addEventListener("pointercancel", up);
+  }
 
   update(
     columns: ReadonlyArray<Column<R>>,
@@ -283,9 +468,13 @@ export class DataGrid<R = unknown> extends HTMLElement {
       h(
         "colgroup",
         null,
-        columns.map((c) =>
-          h("col", { style: c.width ? `width: ${c.width}` : undefined }),
-        ),
+        (this.#cols.length = 0,
+        columns.map((c) => {
+          const px = this.#widths.get(c.id);
+          const col = h("col", { style: px ? `width: ${px}px` : c.width ? `width: ${c.width}` : undefined });
+          this.#cols.push(col);
+          return col;
+        })),
       ),
       h(
         "thead",
@@ -293,8 +482,20 @@ export class DataGrid<R = unknown> extends HTMLElement {
         h(
           "tr",
           null,
-          columns.map((c) =>
-            h("th", { class: c.align === "end" ? "end" : undefined }, c.title),
+          columns.map((c, i) =>
+            h(
+              "th",
+              { class: c.align === "end" ? "end" : undefined },
+              c.title,
+              i < columns.length - 1
+                ? h("div", {
+                    class: "data-grid-resizer",
+                    title: "拖动以调整列宽",
+                    onpointerdown: (e: PointerEvent) => this.#startResize(e, i, columns),
+                    onclick: (e: Event) => e.stopPropagation(),
+                  })
+                : null,
+            ),
           ),
         ),
       ),

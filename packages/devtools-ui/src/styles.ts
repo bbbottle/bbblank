@@ -41,7 +41,7 @@ const base = /* css */ `
 *, *::before, *::after { box-sizing: border-box; }
 button, input { font: inherit; color: inherit; }
 
-.resizer { position: absolute; inset: -3px 0 auto 0; height: 6px; cursor: ns-resize; z-index: 1; }
+.resizer { position: absolute; inset: -3px 0 auto 0; height: 6px; cursor: ns-resize; z-index: 1; touch-action: none; }
 
 /* ---------- tabbed pane ---------- */
 .tabbed-pane-header {
@@ -49,7 +49,40 @@ button, input { font: inherit; color: inherit; }
   border-bottom: var(--sys-size-1) solid var(--sys-color-divider);
   background-color: var(--app-color-toolbar-background);
 }
-.tabbed-pane-header-tabs { display: flex; flex: auto; overflow: hidden; }
+.tabbed-pane-header-tabs { display: flex; flex: auto; overflow: hidden; min-width: 0; }
+.tabbed-pane-header-tab[hidden] { display: none; }
+/* 标签溢出：>> 按钮上覆盖透明的原生 <select>，点击弹出系统菜单（tabbedPane.css 的 drop-down-container） */
+.tabbed-pane-header-tabs-drop-down-container {
+  position: relative; flex: none; display: flex; align-items: center; justify-content: center;
+  width: 24px; opacity: 80%;
+}
+.tabbed-pane-header-tabs-drop-down-container[hidden] { display: none; }
+.tabbed-pane-header-tabs-drop-down-container:hover { background-color: var(--sys-color-state-hover-on-subtle); opacity: 100%; }
+.tabbed-pane-header-tabs-drop-down-container .chevron-icon { width: 16px; height: 16px; }
+.tabbed-pane-overflow-select {
+  position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;
+  /* 16px 防止 iOS Safari 聚焦时缩放页面 */
+  font-size: 16px; border: 0; appearance: none;
+  /* 鼠标设备使用页面内菜单，原生 <select> 不接收点击 */
+  pointer-events: none;
+}
+@media (pointer: coarse) { .tabbed-pane-overflow-select { pointer-events: auto; } }
+/* 页面内菜单（softContextMenu.css） */
+.soft-context-menu {
+  position: fixed; z-index: 3; overflow-y: auto; min-width: var(--sys-size-23);
+  padding: var(--sys-size-5) 0;
+  border: var(--sys-size-1) solid var(--sys-color-neutral-outline);
+  border-radius: var(--sys-shape-corner-small);
+  background-color: var(--sys-color-base-container-elevated);
+  box-shadow: var(--sys-elevation-level3);
+}
+.soft-context-menu[hidden] { display: none; }
+.soft-context-menu-item {
+  display: flex; width: 100%; height: var(--sys-size-11); padding: 0 var(--sys-size-8); align-items: center;
+  border: 0; background: none; color: var(--sys-color-on-surface); font-size: var(--sys-typescale-body4-size);
+  white-space: nowrap; text-align: left; cursor: default;
+}
+.soft-context-menu-item:hover, .soft-context-menu-item:focus-visible { background-color: var(--sys-color-state-hover-on-subtle); outline: none; }
 .tabbed-pane-header-tab {
   position: relative; display: flex; align-items: center; gap: var(--sys-size-3);
   /* tabbedPane.css：font: var(--sys-typescale-body4-medium)，即 500 12px/16px */
@@ -140,7 +173,7 @@ button, input { font: inherit; color: inherit; }
 /* ---------- split widget ---------- */
 bbdt-split-widget { flex: auto; display: flex; min-height: 0; }
 .split-main { flex: auto; overflow: auto; min-width: 0; }
-.split-resizer { flex: 0 0 1px; background: var(--sys-color-divider); cursor: ew-resize; position: relative; }
+.split-resizer { flex: 0 0 1px; background: var(--sys-color-divider); cursor: ew-resize; position: relative; touch-action: none; z-index: 1; }
 .split-resizer::after { content: ""; position: absolute; inset: 0 -3px; }
 .split-sidebar { flex: none; overflow: auto; background: var(--sys-color-cdt-base-container); }
 
@@ -169,6 +202,8 @@ bbdt-data-grid { display: block; flex: auto; overflow: auto; min-height: 0; back
 }
 .data-grid td { vertical-align: top; user-select: text; }
 .data-grid th:first-child, .data-grid td:first-child { border-left-width: 0; }
+/* 列宽拖动（dataGrid.css 的 .data-grid-resizer）：th 为 sticky（已定位）且 overflow: hidden，手柄放在其内侧右缘 */
+.data-grid-resizer { position: absolute; top: 0; bottom: 0; right: 0; width: 5px; z-index: 2; cursor: col-resize; touch-action: none; }
 .data-grid td.end { text-align: right; }
 .data-grid tbody tr { height: var(--sys-size-9); background-color: var(--sys-color-surface); }
 /* striped-data-grid：奇数行着色 */
@@ -334,6 +369,18 @@ bbdt-data-grid:focus-within .data-grid tbody tr.selected { background-color: var
    光标滚动会连带滚动外层容器，把标签栏与侧栏移出可视区域 */
 .split-main > bbdt-split-widget { height: 100%; }
 .split-main:has(> .sources-editor), .split-main:has(> bbdt-split-widget) { overflow: hidden; }
+
+/* ---------- 窄屏：表格保持最小宽度并横向滚动，避免各列被压缩到无法阅读 ---------- */
+@media (max-width: 640px) {
+  .data-grid { min-width: 560px; }
+}
+
+/* ---------- 触屏：拖动手柄加大可触区域 ---------- */
+@media (pointer: coarse) {
+  .resizer { inset: -10px 0 auto 0; height: 20px; }
+  .split-resizer::after { inset: 0 -10px; }
+  .data-grid-resizer { width: 14px; }
+}
 
 /* ---------- Playground ---------- */
 .playground-sidebar { display: flex; flex-direction: column; height: 100%; overflow: auto; }

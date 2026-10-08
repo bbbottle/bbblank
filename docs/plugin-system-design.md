@@ -1074,7 +1074,7 @@ api.caps.dom.mount(panelSlot('console'), host => render(host));
 - **最小权限**：devtools 不向面板转交数据；面板需要的数据由面板插件自行申请 capability（如 `PluginManager` 的 read），宿主可单独授权、审计。
 - **样式**：插槽位于 devtools 的 Shadow Root 内，面板内容直接使用 devtools 的样式与 tokens；组件、样式、图标、配色与数据模型由 `@bbblank/devtools-ui` 包提供，devtools 与面板插件都静态 import 它（打包为公共 chunk）。
 
-**`@bbblank/devtools-ui`**（`packages/devtools-ui`）：仿 Chrome DevTools 的 UI 套件（DOM 构造、Toolbar / SplitWidget / TreeOutline / DataGrid、设计 tokens 与图标、种子色调色板、插件与活动流的本地模型）。依赖方向：`host-dom`/`kernel`（仅类型）← `devtools-ui` ← `apps/*`。chrome-devtools-frontend 的资源（BSD-3-Clause）保存在 `vendor/`，由 `scripts/gen-assets.mjs` 生成为 TS 字符串模块，使包可直接用 `tsc` 构建、不依赖打包器的 `?raw` 导入。
+**`@bbblank/devtools-ui`**（`packages/devtools-ui`）：仿 Chrome DevTools 的 UI 套件（DOM 构造、Toolbar / SplitWidget（可拖动、可收起，窄屏上自动收紧侧栏）/ TreeOutline / DataGrid（可拖动列宽，窄屏上保持最小宽度并横向滚动）/ 标签溢出 `tabOverflow`（放不下的标签收进「>>」：鼠标设备弹出页面内菜单，样式取自 `softContextMenu.css`，固定在按钮下方并右对齐；触屏设备弹出原生 `<select>` 的系统选择器——桌面上原生菜单由操作系统定位，无法与按钮对齐）、设计 tokens 与图标、种子色调色板、插件与活动流的本地模型）。依赖方向：`host-dom`/`kernel`（仅类型）← `devtools-ui` ← `apps/*`。chrome-devtools-frontend 的资源（BSD-3-Clause）保存在 `vendor/`，由 `scripts/gen-assets.mjs` 生成为 TS 字符串模块，使包可直接用 `tsc` 构建、不依赖打包器的 `?raw` 导入。
 
 空白 HTML 只需 `<script type="module" src="/src/main.ts">`。
 

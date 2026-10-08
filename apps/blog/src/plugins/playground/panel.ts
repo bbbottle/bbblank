@@ -14,6 +14,7 @@ import {
   replace,
   splitWidget,
   statusDot,
+  tabOverflow,
   toolbarButton,
   toolbarSeparator,
   treeOutline,
@@ -105,6 +106,8 @@ export const playgroundPanel = (deps: {
   tree.onPick = (path) => void show(path);
 
   const tabs = h("div", { class: "tabbed-pane-header-tabs", role: "tablist" });
+  // 窄屏放不下的文件标签收进「>>」，点击弹出系统菜单
+  const overflow = tabOverflow(tabs, (path) => void show(path));
   const message = h("div", { class: "empty" });
   const editorEl = h("div", { class: "editor-view", hidden: true });
   const editorHost = h("div", { class: "editor-host" }, message, editorEl);
@@ -139,16 +142,25 @@ export const playgroundPanel = (deps: {
   inner.sidebarSide = "right";
   inner.sidebarWidth = 280;
 
+  /** 用户手动切换过侧栏后，不再按面板宽度自动收起 / 展开 */
+  let userToggled = false;
+  const syncToggle = (b: HTMLButtonElement, split: typeof outer, side: "left" | "right") => {
+    const shown = split.sidebarShown;
+    replace(b, icon(`${side}-panel-${shown ? "close" : "open"}`));
+    b.title = b.ariaLabel = `${shown ? "隐藏" : "显示"}${side === "left" ? "导航栏" : "操作栏"}`;
+  };
   const toggle = (split: typeof outer, side: "left" | "right") => {
-    const b = toolbarButton(side === "left" ? "left-panel-close" : "right-panel-close", side === "left" ? "隐藏导航栏" : "隐藏操作栏", () => {
+    const b: HTMLButtonElement = toolbarButton(side === "left" ? "left-panel-close" : "right-panel-close", "", () => {
+      userToggled = true;
       split.sidebarShown = !split.sidebarShown;
-      const shown = split.sidebarShown;
-      replace(b, icon(`${side}-panel-${shown ? "close" : "open"}`));
-      b.title = b.ariaLabel = `${shown ? "隐藏" : "显示"}${side === "left" ? "导航栏" : "操作栏"}`;
+      syncToggle(b, split, side);
     });
     b.classList.add("tabbed-pane-side-button");
+    syncToggle(b, split, side);
     return b;
   };
+  const leftToggle = toggle(outer, "left");
+  const rightToggle = toggle(inner, "right");
 
   outer.sidebar.append(navigator);
   inner.sidebar.append(sidebar);
@@ -156,13 +168,24 @@ export const playgroundPanel = (deps: {
     h(
       "div",
       { class: "sources-editor" },
-      h("div", { class: "tabbed-pane-header" }, toggle(outer, "left"), tabs, toggle(inner, "right")),
+      h("div", { class: "tabbed-pane-header" }, leftToggle, tabs, overflow.el, rightToggle),
       editorHost,
       h("div", { class: "status-bar" }, position, lastRunEl),
     ),
   );
   outer.main.append(inner);
   const el = h("div", { class: "panel" }, outer);
+
+  /** 窄屏（如手机）放不下三栏：面板宽度小于 640 px 时收起左右两栏，由标签栏两端的按钮按需展开 */
+  const NARROW = 640;
+  new ResizeObserver(() => {
+    if (userToggled || !el.clientWidth) return;
+    const wide = el.clientWidth >= NARROW;
+    if (outer.sidebarShown === wide && inner.sidebarShown === wide) return;
+    outer.sidebarShown = inner.sidebarShown = wide;
+    syncToggle(leftToggle, outer, "left");
+    syncToggle(rightToggle, inner, "right");
+  }).observe(el);
 
   let editor: Promise<ReturnType<typeof createCodeEditor>> | undefined;
   const activePlugin = () => (active ? pluginOf(active) : pluginNames(files)[0]);
@@ -209,7 +232,11 @@ export const playgroundPanel = (deps: {
     tree.update(nodes, active);
   };
 
-  const renderTabs = () =>
+  const renderTabs = () => {
+    renderTabStrip();
+    overflow.update();
+  };
+  const renderTabStrip = () =>
     replace(
       tabs,
       open.map((path) =>
@@ -220,6 +247,8 @@ export const playgroundPanel = (deps: {
             role: "tab",
             title: path,
             "aria-selected": String(path === active),
+            "data-key": path,
+            "data-title": path.slice(path.lastIndexOf("/") + 1),
             onclick: () => void show(path),
           },
           h("span", { class: "tabbed-pane-header-tab-icon" }, fileIcon(path)),
