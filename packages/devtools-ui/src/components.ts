@@ -230,24 +230,39 @@ export class SplitWidget extends HTMLElement {
     this.#resizer.hidden = !shown;
   }
 
+  /** 由调用方或用户拖动明确指定的宽度；否则为默认宽度 */
+  #explicit = false;
+
+  /**
+   * 设置侧栏宽度（写入时即按约束显示，之后拖动从显示宽度连续变化）。
+   * 挂载前设置的视为默认宽度（如 Sources 导航栏 240 px），挂载且可见后设置的视为明确指定。
+   */
   set sidebarWidth(px: number) {
     this.#width = px;
-    this.sidebar.style.width = `${px}px`;
+    if (this.isConnected && this.clientWidth > 0) this.#explicit = true;
+    this.#apply();
   }
 
-  /** 主区至少保留 120 px 且不少于容器宽度的 40%；侧栏不少于 100 px（窄屏上侧栏自动收紧） */
+  /**
+   * 宽度约束：侧栏不少于 100 px，主区至少保留 120 px。
+   * 默认宽度另要求主区不少于容器宽度的 40%（窄屏上侧栏自动收紧）；明确指定的宽度不受此限，
+   * 否则调用方设置的较大比例（如详情窗格占 85%）会在第一次拖动时被突然截断。
+   */
   static readonly MIN_MAIN = 120;
   static readonly MIN_SIDEBAR = 100;
 
   #clamp(px: number) {
     const w = this.clientWidth;
-    const max = w ? w - Math.max(SplitWidget.MIN_MAIN, w * 0.4) : px;
+    if (!w) return px;
+    const max = w - (this.#explicit ? SplitWidget.MIN_MAIN : Math.max(SplitWidget.MIN_MAIN, w * 0.4));
     return Math.max(SplitWidget.MIN_SIDEBAR, Math.min(max, px));
   }
 
-  readonly #observer = new ResizeObserver(() => {
+  #apply() {
     this.sidebar.style.width = `${this.#clamp(this.#width)}px`;
-  });
+  }
+
+  readonly #observer = new ResizeObserver(() => this.#apply());
 
   disconnectedCallback() {
     this.#observer.disconnect();
@@ -270,6 +285,7 @@ export class SplitWidget extends HTMLElement {
     const startX = e.clientX;
     // 从当前显示的宽度开始（窄屏上显示宽度可能已被收紧，小于记录的宽度）
     const start = this.sidebar.getBoundingClientRect().width;
+    this.#explicit = true;
     const sign = this.sidebarSide === "left" ? 1 : -1;
     const target = e.currentTarget as HTMLElement;
     target.setPointerCapture(e.pointerId);
@@ -411,6 +427,26 @@ export interface Column<R> {
 
 export class DataGrid<R = unknown> extends HTMLElement {
   onPick: (key: string) => void = () => {};
+  /** 当前各行的 key 与选中项，供方向键切换选中行 */
+  #keys: ReadonlyArray<string> = [];
+  #selected: string | undefined;
+
+  /**
+   * 与 Chrome 的数据表格相同：表格可聚焦，点击行即获得焦点，选中行显示高亮色（tonal-container）；
+   * 焦点移出表格时选中行退为浅色（neutral-container）。聚焦时上下方向键切换选中行。
+   */
+  connectedCallback() {
+    if (!this.hasAttribute("tabindex")) this.tabIndex = 0;
+    this.onkeydown = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+      if (!this.#keys.length) return;
+      e.preventDefault();
+      const i = this.#selected === undefined ? -1 : this.#keys.indexOf(this.#selected);
+      const next = e.key === "ArrowDown" ? Math.min(this.#keys.length - 1, i + 1) : Math.max(0, i < 0 ? 0 : i - 1);
+      this.onPick(this.#keys[next]!);
+      this.querySelector("tbody tr.selected")?.scrollIntoView({ block: "nearest" });
+    };
+  }
   /** 用户拖动后的列宽（px，按列 id）；重新渲染时沿用 */
   readonly #widths = new Map<string, number>();
   readonly #cols: Array<HTMLTableColElement> = [];
@@ -462,6 +498,8 @@ export class DataGrid<R = unknown> extends HTMLElement {
       empty?: string;
     } = {},
   ) {
+    this.#keys = rows.map(key);
+    this.#selected = opts.selected;
     const table = h(
       "table",
       { class: "data-grid" },
@@ -514,7 +552,11 @@ export class DataGrid<R = unknown> extends HTMLElement {
                 ]
                   .join(" ")
                   .trim() || undefined,
-              onclick: () => this.onPick(k),
+              onclick: (e: MouseEvent) => {
+                // 点击行时让表格获得焦点，选中行即显示高亮色；点在行内按钮等可交互元素上时由该元素获得焦点
+                if (!(e.target as Element).closest("button, a, input, select, textarea")) this.focus({ preventScroll: true });
+                this.onPick(k);
+              },
             },
             columns.map((c) =>
               h(

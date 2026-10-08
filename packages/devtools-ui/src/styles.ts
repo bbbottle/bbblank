@@ -201,6 +201,8 @@ bbdt-data-grid { display: block; flex: auto; overflow: auto; min-height: 0; back
   border-bottom: var(--sys-size-1) solid var(--sys-color-divider);
 }
 .data-grid td { vertical-align: top; user-select: text; }
+/* 表格内的按钮使用紧凑高度，不撑高所在行：行高与列的组成无关（如 Market 打开详情后只剩「名称」列时各行不再变矮） */
+.data-grid td .text-button { height: 18px; line-height: 16px; vertical-align: top; }
 .data-grid th:first-child, .data-grid td:first-child { border-left-width: 0; }
 /* 列宽拖动（dataGrid.css 的 .data-grid-resizer）：th 为 sticky（已定位）且 overflow: hidden，手柄放在其内侧右缘 */
 .data-grid-resizer { position: absolute; top: 0; bottom: 0; right: 0; width: 5px; z-index: 2; cursor: col-resize; touch-action: none; }
@@ -209,8 +211,13 @@ bbdt-data-grid { display: block; flex: auto; overflow: auto; min-height: 0; back
 /* striped-data-grid：奇数行着色 */
 .data-grid tbody tr:nth-child(odd):not(.selected) { background-color: var(--sys-color-surface1); }
 .data-grid tbody tr:not(.selected):hover { background-color: var(--sys-color-state-hover-on-subtle); }
-.data-grid tbody tr.selected { background-color: var(--sys-color-neutral-container); }
+/* 失焦时的选中行：Chrome 用 neutral-container，但在本主题的调色板中它与斑马纹底色（surface1）几乎相同，
+   改用降低浓度的高亮色，仍可辨认且与聚焦时（tonal-container）有所区别 */
+.data-grid tbody tr.selected { background-color: color-mix(in srgb, var(--sys-color-tonal-container) 45%, var(--sys-color-cdt-base-container)); }
 bbdt-data-grid:focus-within .data-grid tbody tr.selected { background-color: var(--sys-color-tonal-container); }
+bbdt-data-grid:focus-within .data-grid tbody tr.selected td { border-left-color: var(--sys-color-divider-on-tonal-container); }
+/* 表格聚焦以选中行高亮表示，不再绘制焦点轮廓（同 Chrome） */
+bbdt-data-grid:focus { outline: none; }
 .data-grid tbody tr.error { background-color: var(--sys-color-surface-error); }
 .data-grid tbody tr.error td { color: var(--sys-color-on-surface-error); }
 
@@ -351,6 +358,24 @@ bbdt-data-grid:focus-within .data-grid tbody tr.selected { background-color: var
 .editor-host > .editor-view { height: 100%; }
 .editor-host > [hidden] { display: none; }
 .sources-editor > .tabbed-pane-header { border-top: 0; }
+
+/* ---------- 详情窗格（Network 选中请求后的详情视图；分区样式取自 RequestHeadersView.css） ---------- */
+.market-details { display: flex; flex-direction: column; height: 100%; }
+.market-details > .tabbed-pane-header { flex: none; }
+.market-details > .tabbed-pane-header > .tabbed-pane-close-details { align-self: center; flex: none; }
+.market-details-body { flex: auto; overflow: auto; min-height: 0; }
+.split-sidebar:has(> .market-details) { overflow: hidden; }
+.details-section > summary.header {
+  background-color: var(--sys-color-surface1); line-height: 25px; padding: 0 5px; cursor: default; user-select: none;
+  border-top: var(--sys-size-1) solid var(--sys-color-divider); border-bottom: var(--sys-size-1) solid var(--sys-color-divider);
+}
+.details-section:first-child > summary.header { border-top: 0; }
+.details-section > .row { display: flex; line-height: 18px; padding-left: var(--sys-size-5); gap: var(--sys-size-6); user-select: text; margin: var(--sys-size-3) 0; }
+.details-section > summary + .row { margin-top: var(--sys-size-5); }
+.details-section > .row:last-child { margin-bottom: var(--sys-size-5); }
+.details-section .header-name { color: var(--sys-color-on-surface-subtle); font-weight: var(--ref-typeface-weight-medium); width: 30%; min-width: var(--sys-size-23); max-width: var(--sys-size-28); flex-shrink: 0; }
+.details-section .header-value { word-break: break-all; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sys-size-2); }
+@media (max-width: 640px) { .details-section .header-name { min-width: 72px; } }
 
 /* ---------- 可折叠窗格（viewContainers.css） ---------- */
 .expandable-view-title {
