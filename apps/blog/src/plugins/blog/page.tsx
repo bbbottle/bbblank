@@ -16,21 +16,31 @@ type PostsState =
 const Square = ({
   size = 12,
   color = "#000",
+  blink,
 }: {
   size?: number;
   color?: string;
+  blink?: boolean;
 }) => (
   <span
+    className={blink ? "blink" : ""}
     style={{
       display: "inline-block",
       width: size,
       height: size,
       background: color,
+      transition: "opacity .2s",
     }}
   ></span>
 );
 
-const Blog = ({ html, posts }: { readonly html: HtmlFacade; readonly posts: PostsService }) => {
+const Blog = ({
+  html,
+  posts,
+}: {
+  readonly html: HtmlFacade;
+  readonly posts: PostsService;
+}) => {
   const [state, setState] = useState<PostsState>({ kind: "loading" });
 
   useEffect(() => {
@@ -49,7 +59,12 @@ const Blog = ({ html, posts }: { readonly html: HtmlFacade; readonly posts: Post
     return () => ctrl.abort();
   }, [html, posts]);
 
-  if (state.kind === "loading") return;
+  if (state.kind === "loading")
+    return (
+      <div style={{ display: "grid", placeItems: "center" }}>
+        <Square blink />
+      </div>
+    );
   if (state.kind === "error") return <p>文章加载失败：{state.message}</p>;
   return (
     <section>
@@ -75,7 +90,11 @@ const Blog = ({ html, posts }: { readonly html: HtmlFacade; readonly posts: Post
 };
 
 /** 在 host 中渲染 /blog 页面；返回卸载函数 */
-export const renderBlog = (host: HTMLElement, html: HtmlFacade, posts: PostsService) => {
+export const renderBlog = (
+  host: HTMLElement,
+  html: HtmlFacade,
+  posts: PostsService,
+) => {
   const root = createRoot(host);
   root.render(<Blog html={html} posts={posts} />);
   return () => root.unmount();

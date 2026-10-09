@@ -14,6 +14,18 @@ export const css = `
   a:hover { text-decoration: underline; }
   /* 脚注中的可交互元素（FootnoteActionTopic）；选择器需高于 heti 的 .heti abbr[title]（cursor: help） */
   .shell.heti > footer [data-action] { cursor: pointer; }
+  :root {
+    --blink-speed: .5s;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: .5; }
+    50% { opacity: 0; }
+  }
+
+  .blink {
+    animation: blink var(--blink-speed) infinite;
+  }
 /*!
  * Project: Heti
  * URL: https://github.com/sivan/heti

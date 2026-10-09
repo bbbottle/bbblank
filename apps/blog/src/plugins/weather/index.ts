@@ -24,7 +24,7 @@ export const weather = definePlugin({
     const show = (content: string) =>
       notes.upsertNote({ contentStr: "长沙", note: { id: NOTE_ID, content } });
 
-    show("");
+    show("...");
     fetchTodayWeather(ctrl.signal).then(
       (content) => {
         if (!ctrl.signal.aborted) show(content);

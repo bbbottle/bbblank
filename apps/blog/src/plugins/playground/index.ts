@@ -7,7 +7,12 @@
 import { definePlugin, Storage } from "@bbblank/sdk";
 import type { SemVer } from "@bbblank/sdk";
 import { Dom, PluginManager, Sideload } from "@bbblank/host-dom";
-import { DevtoolsDeveloper, DevtoolsPanels, DevtoolsPluginId, panelSlot } from "../devtools/api";
+import {
+  DevtoolsDeveloper,
+  DevtoolsPanels,
+  DevtoolsPluginId,
+  panelSlot,
+} from "../devtools/api";
 import { PlaygroundPluginId } from "./api";
 import { createCompiler } from "./compiler";
 import { playgroundPanel } from "./panel";
@@ -18,7 +23,7 @@ const PANEL = "playground";
 export const playground = definePlugin({
   manifest: {
     id: PlaygroundPluginId,
-    name: "Playground",
+    name: "Devtools Playground",
     version: "0.1.0" as SemVer,
     // devtools.developer 服务自 devtools 1.1.0 起提供
     dependencies: [{ id: DevtoolsPluginId, range: "^1.1.0" }],
@@ -46,8 +51,12 @@ export const playground = definePlugin({
     // 启动即读取草稿并登记到 Plugins 面板，无需先打开 Playground
     await panel.init();
     // 排在 Sources（15）之后
-    api.lifecycle.addCleanup(panels.register({ id: PANEL, title: "Playground", order: 17 }));
-    api.lifecycle.addCleanup(panels.onShown(PANEL, (shown) => shown && panel.update("shown")));
+    api.lifecycle.addCleanup(
+      panels.register({ id: PANEL, title: "Playground", order: 17 }),
+    );
+    api.lifecycle.addCleanup(
+      panels.onShown(PANEL, (shown) => shown && panel.update("shown")),
+    );
     dom.mount(panelSlot(PANEL), (host) => {
       host.append(panel.el);
       return () => panel.el.remove();
