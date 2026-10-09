@@ -10,6 +10,7 @@ export const css = `
   .shell > main { flex: 1; }
   .shell > footer { padding-bottom: 2rem; border-block-start-color: #f1f1f1 !important }
   .shell figure > img { max-width: 100%; }
+  .shell figcaption { padding: 4px; font: smaller }
   a { color: var(--link, #0969da); text-decoration: none; }
   a:hover { text-decoration: underline; }
   /* 脚注中的可交互元素（FootnoteActionTopic）；选择器需高于 heti 的 .heti abbr[title]（cursor: help） */
