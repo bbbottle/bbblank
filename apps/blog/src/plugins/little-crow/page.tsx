@@ -14,39 +14,82 @@ type PostState =
   | { readonly kind: "missing" }
   | { readonly kind: "ready"; readonly post: RenderedPost };
 
-const Square = ({ size = 12, color = "#000" }: { size?: number; color?: string }) => (
-  <span style={{ display: "inline-block", width: size, height: size, background: color }}></span>
-);
+const Square = ({
+  size = 12,
+  color = "#000",
+  blink,
+}: {
+  size?: number;
+  color?: string;
+  blink?: boolean;
+}) => {
+  const cls = blink ? "blink" : "";
+  return (
+    <span
+      className={cls}
+      style={{
+        display: "inline-block",
+        width: size,
+        height: size,
+        background: color,
+      }}
+    ></span>
+  );
+};
 
-const LittleCrow = ({ html, posts }: { readonly html: HtmlFacade; readonly posts: PostsService }) => {
+const LittleCrow = ({
+  html,
+  posts,
+}: {
+  readonly html: HtmlFacade;
+  readonly posts: PostsService;
+}) => {
   const [state, setState] = useState<PostState>({ kind: "loading" });
 
   useEffect(() => {
     const ctrl = new AbortController();
     posts.byTitle(POST_TITLE, ctrl.signal).then(
       (post) =>
-        setState(post ? { kind: "ready", post: { ...post, content: html.trust(post.content) } } : { kind: "missing" }),
+        setState(
+          post
+            ? {
+                kind: "ready",
+                post: { ...post, content: html.trust(post.content) },
+              }
+            : { kind: "missing" },
+        ),
       (e: unknown) => {
-        if (!ctrl.signal.aborted) setState({ kind: "error", message: String(e) });
+        if (!ctrl.signal.aborted)
+          setState({ kind: "error", message: String(e) });
       },
     );
     return () => ctrl.abort();
   }, [html, posts]);
 
-  if (state.kind === "loading") return;
+  if (state.kind === "loading")
+    return (
+      <div style={{ display: "grid", placeItems: "center" }}>
+        <Square blink />
+      </div>
+    );
+
   return (
     <section>
       {state.kind === "ready" ? (
         <article style={{ marginTop: "6rem" }}>
           <h3>{state.post.title}</h3>
           <p className="heti-meta heti-small">
-            <time dateTime={state.post.createdAt}>{state.post.createdAt.slice(0, 10)}</time>
+            <time dateTime={state.post.createdAt}>
+              {state.post.createdAt.slice(0, 10)}
+            </time>
           </p>
           <div dangerouslySetInnerHTML={{ __html: state.post.content.html }} />
         </article>
       ) : (
         <p style={{ marginTop: "6rem" }}>
-          {state.kind === "missing" ? `没有找到标题为「${POST_TITLE}」的文章。` : `文章加载失败：${state.message}`}
+          {state.kind === "missing"
+            ? `没有找到标题为「${POST_TITLE}」的文章。`
+            : `文章加载失败：${state.message}`}
         </p>
       )}
       <hr style={{ marginTop: "6rem" }} />
@@ -60,7 +103,11 @@ const LittleCrow = ({ html, posts }: { readonly html: HtmlFacade; readonly posts
 };
 
 /** 在 host 中渲染小乌鸦合集页面；返回卸载函数 */
-export const renderLittleCrow = (host: HTMLElement, html: HtmlFacade, posts: PostsService) => {
+export const renderLittleCrow = (
+  host: HTMLElement,
+  html: HtmlFacade,
+  posts: PostsService,
+) => {
   const root = createRoot(host);
   root.render(<LittleCrow html={html} posts={posts} />);
   return () => root.unmount();
