@@ -71,10 +71,9 @@ const Blog = ({
       {state.posts.map((p, i) => (
         <Fragment key={p.id}>
           <article style={{ marginTop: "6rem" }}>
-            <h3>{p.title}</h3>
-            <p className="heti-meta heti-small">
-              <time dateTime={p.createdAt}>{p.createdAt.slice(0, 10)}</time>
-            </p>
+            <time dateTime={p.createdAt} className="heti-small">
+              {p.createdAt.slice(0, 10)}
+            </time>
             <div dangerouslySetInnerHTML={{ __html: p.content.html }} />
           </article>
         </Fragment>
