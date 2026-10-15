@@ -59,12 +59,7 @@ const Blog = ({
     return () => ctrl.abort();
   }, [html, posts]);
 
-  if (state.kind === "loading")
-    return (
-      <div style={{ display: "grid", placeItems: "center" }}>
-        <Square blink />
-      </div>
-    );
+  if (state.kind === "loading") return <Square blink />;
   if (state.kind === "error") return <p>文章加载失败：{state.message}</p>;
   return (
     <section>
