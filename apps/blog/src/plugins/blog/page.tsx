@@ -78,12 +78,9 @@ const Blog = ({
           </article>
         </Fragment>
       ))}
-      <hr style={{ marginTop: "6rem" }} />
-      <p className="heti-meta heti-small">
-        <a data-link href="/">
-          <Square />
-        </a>
-      </p>
+      <a data-link href="/">
+        <Square />
+      </a>
     </section>
   );
 };
