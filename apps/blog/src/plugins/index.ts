@@ -23,10 +23,8 @@ import { DevtoolsNetworkPluginId } from "./devtools-network/api";
 import { DevtoolsSourcesPluginId } from "./devtools-sources/api";
 import { PluginManagerPluginId } from "./plugin-manager/api";
 import { LittleCrowPluginId } from "./little-crow/api";
-import { NowPluginId } from "./now/api";
 import { PlaygroundPluginId } from "./playground/api";
 import { ShellPluginId } from "./shell/api";
-import { WeatherPluginId } from "./weather/api";
 
 export interface PluginEntry extends PluginCatalogEntry {
   readonly id: PluginID;
@@ -76,22 +74,6 @@ export const plugins: ReadonlyArray<PluginEntry> = [
     description: "组装的文字。",
     builtin: false,
     load: () => import("./blog").then((m) => m.blog),
-  },
-  {
-    id: WeatherPluginId,
-    name: "Weather",
-    version: "1.0.0",
-    description: "长沙当前天气。",
-    builtin: false,
-    load: () => import("./weather").then((m) => m.weather),
-  },
-  {
-    id: NowPluginId,
-    name: "Now",
-    version: "1.0.0",
-    description: "显示当前日期与时间（YYYY-MM-DD HH:mm:ss）。",
-    builtin: false,
-    load: () => import("./now").then((m) => m.now),
   },
   {
     id: LittleCrowPluginId,

@@ -41,7 +41,7 @@ export const blog = definePlugin({
 
     const note: Readonly<Note> = {
       id: 2,
-      content: html.trust(`<a href="${ROUTE}" data-link>blog</a>`),
+      content: html.trust(`<a href="${ROUTE}" data-link>博客</a>`),
     };
     notes.upsertNote({ contentStr: "组装好的文字", note });
     return () => notes.delNote(note.id);
