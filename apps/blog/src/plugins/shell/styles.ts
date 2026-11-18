@@ -14,10 +14,12 @@ export const css = `
   a { color: var(--link, black); text-decoration: none; 
     color: black;
     text-decoration: none;
-    border-bottom: dotted 1px;
     padding-block-end: 1px;
   }
-  a:hover { text-decoration: underline; }
+  a:hover {
+    text-decoration: underline;
+    border-bottom: dotted 1px;
+  }
   /* 脚注中的可交互元素（FootnoteActionTopic）；选择器需高于 heti 的 .heti abbr[title]（cursor: help） */
   .shell.heti > footer [data-action] { cursor: pointer; }
   :root {
