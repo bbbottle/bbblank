@@ -180,7 +180,7 @@ export const sourcesPanel = (): PanelView => {
     replace(
       origin,
       active
-        ? h("a", { href: githubUrl(build.commit, active, cursor.line), target: "_blank", rel: "noopener" }, "在 GitHub 上打开")
+        ? h("a", { class: "text-link", href: githubUrl(build.commit, active, cursor.line), target: "_blank", rel: "noopener" }, "在 GitHub 上打开")
         : "",
     );
   };

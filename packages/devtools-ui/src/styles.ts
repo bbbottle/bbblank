@@ -276,6 +276,7 @@ bbdt-data-grid:focus { outline: none; }
 .console-text { flex: auto; min-width: 0; overflow-wrap: anywhere; }
 .console-meta { flex: none; color: var(--sys-color-on-surface-subtle); white-space: nowrap; }
 .console-source { color: var(--text-link); }
+.text-link { color: var(--text-link); }
 .publisher { color: var(--sys-color-token-tag); }
 
 /* ---------- object preview ---------- */
