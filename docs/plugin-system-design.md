@@ -1050,6 +1050,7 @@ plugins/<name>/
 - **`DevtoolsDeveloper` 服务（devtools 1.1.0 起）**：`register({ id, name, description?, source, install() })` 登记一个可安装的开发插件，返回 Cleanup；Plugins 面板列出未安装的登记项，「安装」调用登记方的 `install()`（失败时错误显示在分组内）。开发插件不在插件目录中，因此不经 Market。
 - **`Sideload` 能力（宿主，`packages/host/src/sideload.ts`）**：`SideloadRegistry` 保存运行期登记的插件模块；`SideloadLoader(registry, fallback)` 先查登记表、再交给原加载器（如 `LazyPluginLoader`），因此不改内核即可加载浏览器中编译出的模块。能力门面 `register(id, module)` / `unregister(id)` 需要 write、写审计，id 必须以 `dev-` 开头（不能覆盖目录内插件）。
 - `devtools-console` / `devtools-network` / `devtools-application`（`[Dom, PluginManager]`，依赖 `devtools ^1.0.0`）：面板插件，分别是活动流中的事件、生命周期阶段耗时、安装记录与审计。plugin-manager 首次安装 devtools 时一并安装它们；之后可在 Market 中单独卸载、安装。
+  - **Console 命令行**：`devtools-console` 有 Chrome Console 风格的命令行（`chevron-right` 提示符，Enter 求值、Shift+Enter 换行、↑/↓ 历史），作为滚动列表的最后一个元素、随内容滚动而非固定在底部，无分隔线。求值为纯 JS：以 `AsyncFunction` 作为求值容器——表达式（含对象字面量、顶层 `await`）直接作为函数体返回值，避免 `{a: 1}` 被当作语句块；语句块（声明、控制流）原样执行并返回 `undefined`。结果以 `chevron-left-dot` 图标内联展示（`objectPreview`），错误走红色 error 样式（`describeError`）。REPL 全局只暴露 SDK 面：`sdk`、`hostDom`、各插件的 `api.ts` 命名空间（目录名转 camelCase）、`pm`（本面板的 `PluginManagerFacade`）与 `kernel`（宿主调试句柄 `window.bbking` 的 `KernelView`）；不把 `window`/`document` 作为命名全局，与 capability 模型一致。每次求值独立，不跨行持久化声明。
 
 **devtools 面板扩展**：面板以「服务登记 + 专属插槽」两步接入——
 

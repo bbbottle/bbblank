@@ -2,6 +2,7 @@
 import type { Activity } from "@bbblank/kernel";
 import {
   clock,
+  describeError,
   h,
   icon,
   objectPreview,
@@ -14,6 +15,7 @@ import {
   toolbarText,
 } from "@bbblank/devtools-ui";
 import type { DevtoolsModel, PanelView } from "@bbblank/devtools-ui";
+import { evaluate, sdkGlobals } from "./eval";
 
 type Level = "info" | "warning" | "error";
 
@@ -75,6 +77,90 @@ export const consolePanel = (model: DevtoolsModel): PanelView => {
   const levels = new Set<Level>(["info", "warning", "error"]);
   const count = toolbarText("");
   const list = h("div", { class: "console" });
+  const messages = h("div", { class: "console-messages" });
+
+  // ---------- REPL（Chrome Console 风格的命令行） ----------
+  const globals: Record<string, unknown> = {
+    ...sdkGlobals(),
+    pm: model.pm,
+    kernel: (globalThis as { bbking?: unknown }).bbking,
+  };
+  /** 已求值的输入回显与结果节点；与活动流一起渲染在 list 中 */
+  const repl: Array<HTMLElement> = [];
+  const history: Array<string> = [];
+  let historyIndex = 0;
+
+  const input = h("textarea", {
+    rows: "1",
+    spellcheck: "false",
+    autocapitalize: "off",
+  });
+  const grow = () => {
+    input.style.height = "auto";
+    input.style.height = `${input.scrollHeight}px`;
+  };
+  input.oninput = grow;
+
+  const echoRow = (code: string) =>
+    h("div", { class: "console-message repl-input" }, icon("chevron-right", "console-prompt-icon"), h("span", { class: "console-text" }, code));
+  const resultRow = (v: unknown) =>
+    h("div", { class: "console-message repl-result" }, icon("chevron-left-dot", "console-result-icon"), h("span", { class: "console-text" }, objectPreview(v)));
+  const errorRow = (e: unknown) =>
+    h("div", { class: "console-message error repl-error" }, icon("cross-circle"), h("span", { class: "console-text" }, describeError(e)));
+
+  const run = async (code: string) => {
+    try {
+      const v = await evaluate(code, globals);
+      if (v !== undefined) repl.push(resultRow(v));
+    } catch (e) {
+      repl.push(errorRow(e));
+    }
+    render();
+  };
+
+  const submit = () => {
+    const code = input.value;
+    if (!code.trim()) return;
+    history.push(code);
+    historyIndex = history.length;
+    input.value = "";
+    grow();
+    repl.push(echoRow(code));
+    render();
+    void run(code);
+  };
+
+  input.onkeydown = (e: KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      submit();
+    } else if (e.key === "ArrowUp" && !e.shiftKey && !input.value.includes("\n")) {
+      if (history.length && historyIndex > 0) {
+        historyIndex -= 1;
+        input.value = history[historyIndex];
+        input.setSelectionRange(input.value.length, input.value.length);
+        grow();
+        e.preventDefault();
+      }
+    } else if (e.key === "ArrowDown" && !e.shiftKey && !input.value.includes("\n")) {
+      if (historyIndex < history.length) {
+        historyIndex += 1;
+        input.value = historyIndex < history.length ? history[historyIndex] : "";
+        input.setSelectionRange(input.value.length, input.value.length);
+        grow();
+        e.preventDefault();
+      }
+    }
+  };
+
+  const inputLine = h(
+    "div",
+    { class: "console-input", onclick: () => input.focus() },
+    icon("chevron-right", "console-prompt-icon"),
+    input,
+  );
+  list.append(messages, inputLine);
+
   const level = (l: Level, label: string) =>
     toolbarCheckbox(label, true, (on) => {
       if (on) levels.add(l);
@@ -86,7 +172,10 @@ export const consolePanel = (model: DevtoolsModel): PanelView => {
     "div",
     { class: "panel" },
     toolbar(
-      toolbarButton("clear", "清除事件", () => model.clearActivity(["event", "event-invalid", "event-dropped"])),
+      toolbarButton("clear", "清除事件", () => {
+        model.clearActivity(["event", "event-invalid", "event-dropped"]);
+        repl.length = 0;
+      }),
       toolbarSeparator(),
       toolbarFilter("过滤（插件、事件名、内容）", (v) => {
         query = v.trim().toLowerCase();
@@ -137,7 +226,7 @@ export const consolePanel = (model: DevtoolsModel): PanelView => {
       return l && levels.has(l) && (!query || textOf(a).toLowerCase().includes(query)) ? [messageOf(a, l)] : [];
     });
     count.textContent = `${rows.length} 条消息`;
-    replace(list, rows.length ? rows : h("div", { class: "empty" }, "尚无事件。点击信件中的方块试试。"));
+    replace(messages, [...rows, ...repl]);
     if (atBottom) list.scrollTop = list.scrollHeight;
   };
 

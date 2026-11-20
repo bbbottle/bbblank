@@ -13,6 +13,8 @@ const svgs = {
   folder: iconSvgs.folder,
   plus: iconSvgs.plus,
   "chevron-double-right": iconSvgs["chevron-double-right"],
+  "chevron-left-dot": iconSvgs["chevron-left-dot"],
+  "chevron-right": iconSvgs["chevron-right"],
   bin: iconSvgs.bin,
   resume: iconSvgs.resume,
   stop: iconSvgs.stop,

@@ -276,6 +276,20 @@ bbdt-data-grid:focus { outline: none; }
 .console-text { flex: auto; min-width: 0; overflow-wrap: anywhere; }
 .console-meta { flex: none; color: var(--sys-color-on-surface-subtle); white-space: nowrap; }
 .console-source { color: var(--text-link); }
+.console-input {
+  display: flex; align-items: flex-start; gap: var(--sys-size-3);
+  padding: 3px var(--sys-size-6) 3px var(--sys-size-4);
+  background: var(--sys-color-cdt-base-container);
+  font-family: var(--monospace-font-family); font-size: var(--monospace-font-size);
+}
+.console-input textarea {
+  flex: auto; min-width: 0; margin: 0; padding: 0; border: 0; outline: 0; background: transparent; resize: none;
+  color: var(--sys-color-on-surface); font-family: inherit; font-size: inherit; line-height: inherit;
+}
+.console-prompt-icon, .console-result-icon { width: var(--sys-size-8); height: var(--sys-size-8); flex: none; }
+.console-prompt-icon { color: var(--sys-color-primary); }
+.console-result-icon { color: var(--sys-color-on-surface-subtle); }
+.repl-input .console-text, .repl-result .console-text { white-space: pre-wrap; }
 .text-link { color: var(--text-link); }
 .publisher { color: var(--sys-color-token-tag); }
 

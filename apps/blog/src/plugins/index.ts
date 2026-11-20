@@ -95,7 +95,7 @@ export const plugins: ReadonlyArray<PluginEntry> = [
     id: DevtoolsConsolePluginId,
     name: "DevTools Console",
     version: "1.0.0",
-    description: "DevTools 面板：插件之间的事件与内容，警告与错误计数。",
+    description: "DevTools 面板：插件之间的事件与内容，警告与错误计数，命令行求值（纯 JS）。",
     builtin: false,
     load: () => import("./devtools-console").then((m) => m.devtoolsConsole),
   },
