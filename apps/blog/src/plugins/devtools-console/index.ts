@@ -44,7 +44,9 @@ export const devtoolsConsole = definePlugin({
     badge();
     api.lifecycle.addCleanup(model.onChange(badge));
 
-    api.lifecycle.addCleanup(panels.register({ id: PANEL, title: "Console", order: 10 }));
+    api.lifecycle.addCleanup(
+      panels.register({ id: PANEL, title: "Console", order: 10 }),
+    );
     api.lifecycle.addCleanup(
       panels.onShown(PANEL, (s) => {
         shown = s;

@@ -1,5 +1,7 @@
 /** Console：活动流中的事件。发布为普通消息，背压丢弃为警告，校验失败与生命周期失败为错误 */
 import type { Activity } from "@bbblank/kernel";
+import { LogTopic } from "@bbblank/sdk";
+import type { LogEntry } from "@bbblank/sdk";
 import {
   clock,
   describeError,
@@ -19,7 +21,21 @@ import { evaluate, sdkGlobals } from "./eval";
 
 type Level = "info" | "warning" | "error";
 
+/** 平台级日志事件（bbblank.log） */
+const isLog = (a: Activity) => a.kind === "event" && a.topic === LogTopic.key;
+
+/** 日志事件数据（仅在 isLog 为真时调用） */
+const logOf = (a: Activity) => {
+  const { publisher, payload } = a as Extract<Activity, { readonly kind: "event" }>;
+  const { level, message } = payload as LogEntry;
+  return { publisher, level, message };
+};
+
 const levelOf = (a: Activity): Level | undefined => {
+  if (isLog(a)) {
+    const { level } = logOf(a);
+    return level === "warn" ? "warning" : level === "error" ? "error" : "info";
+  }
   switch (a.kind) {
     case "event":
       return "info";
@@ -34,6 +50,10 @@ const levelOf = (a: Activity): Level | undefined => {
 
 /** 用于筛选的纯文本 */
 const textOf = (a: Activity) => {
+  if (isLog(a)) {
+    const { publisher, message } = logOf(a);
+    return `${publisher} ${message}`;
+  }
   switch (a.kind) {
     case "event":
       return `${a.publisher} ${a.topic} ${safeJson(a.payload)}`;
@@ -56,6 +76,10 @@ const safeJson = (v: unknown) => {
 
 const body = (a: Activity) => {
   const pub = (id: string) => h("span", { class: "publisher" }, `[${id}] `);
+  if (isLog(a)) {
+    const { publisher, message } = logOf(a);
+    return [pub(publisher), message];
+  }
   switch (a.kind) {
     case "event":
       return [pub(a.publisher), h("strong", null, a.topic), " ", objectPreview(a.payload)];
@@ -207,7 +231,7 @@ export const consolePanel = (model: DevtoolsModel): PanelView => {
         h(
           "span",
           { class: "console-meta" },
-          a.kind === "event" ? h("span", { class: "console-source" }, `${a.subscribers} 个订阅者 · `) : null,
+          a.kind === "event" && !isLog(a) ? h("span", { class: "console-source" }, `${a.subscribers} 个订阅者 · `) : null,
           clock(a.at),
         ),
       );

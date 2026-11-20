@@ -225,6 +225,8 @@ export const defineTopic = <T>(
 
 `EventHub.emit` 在 dev 模式对 payload 做 `Schema.decodeUnknownSync`，prod 跳过。**事件的编译期类型与运行时校验来自同一份 Schema**。
 
+SDK 另提供平台级标准 Topic `LogTopic`（key `bbblank.log`，payload `{ level: 'info' | 'warn' | 'error', message: string }`）：插件经 `api.events.emit(LogTopic, …)` 写日志，发布方只依赖 sdk、不依赖任何查看器；`devtools-console` 在活动流中对其特判渲染（按级别着色），无人渲染时日志仍进入活动流环形缓冲并可回放。
+
 服务不做运行时校验：`register(token, impl)` 的 `impl: T` 由 TypeScript 保证；对动态加载的第三方插件，信任边界落在 manifest 解码与 admin 权限上，而不是服务形状上。例：
 
 ```ts
@@ -1051,6 +1053,7 @@ plugins/<name>/
 - **`Sideload` 能力（宿主，`packages/host/src/sideload.ts`）**：`SideloadRegistry` 保存运行期登记的插件模块；`SideloadLoader(registry, fallback)` 先查登记表、再交给原加载器（如 `LazyPluginLoader`），因此不改内核即可加载浏览器中编译出的模块。能力门面 `register(id, module)` / `unregister(id)` 需要 write、写审计，id 必须以 `dev-` 开头（不能覆盖目录内插件）。
 - `devtools-console` / `devtools-network` / `devtools-application`（`[Dom, PluginManager]`，依赖 `devtools ^1.0.0`）：面板插件，分别是活动流中的事件、生命周期阶段耗时、安装记录与审计。plugin-manager 首次安装 devtools 时一并安装它们；之后可在 Market 中单独卸载、安装。
   - **Console 命令行**：`devtools-console` 有 Chrome Console 风格的命令行（`chevron-right` 提示符，Enter 求值、Shift+Enter 换行、↑/↓ 历史），作为滚动列表的最后一个元素、随内容滚动而非固定在底部，无分隔线。求值为纯 JS：以 `AsyncFunction` 作为求值容器——表达式（含对象字面量、顶层 `await`）直接作为函数体返回值，避免 `{a: 1}` 被当作语句块；语句块（声明、控制流）原样执行并返回 `undefined`。结果以 `chevron-left-dot` 图标内联展示（`objectPreview`），错误走红色 error 样式（`describeError`）。REPL 全局只暴露 SDK 面：`sdk`、`hostDom`、各插件的 `api.ts` 命名空间（目录名转 camelCase）、`pm`（本面板的 `PluginManagerFacade`）与 `kernel`（宿主调试句柄 `window.bbking` 的 `KernelView`）；不把 `window`/`document` 作为命名全局，与 capability 模型一致。每次求值独立，不跨行持久化声明。
+  - **日志渲染**：活动流中的 `bbblank.log` 事件特判渲染为 `[publisher] message`（`warn` → 黄色行、`error` → 红色行、`info` → 普通行），不显示订阅者计数，只显示时间戳。
 
 **devtools 面板扩展**：面板以「服务登记 + 专属插槽」两步接入——
 
