@@ -15,11 +15,11 @@ export const css = `
     color: black;
     text-decoration: none;
     padding-block-end: 1px;
+    margin-inline-start: 1px;
+    margin-inline-end: 1px;
+    border-block-end: 1px dotted;
   }
-  a:hover {
-    text-decoration: underline;
-    border-bottom: dotted 1px;
-  }
+
   /* 脚注中的可交互元素（FootnoteActionTopic）；选择器需高于 heti 的 .heti abbr[title]（cursor: help） */
   .shell.heti > footer [data-action] { cursor: pointer; }
   :root {

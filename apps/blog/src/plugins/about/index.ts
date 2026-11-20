@@ -26,7 +26,7 @@ export const about = definePlugin({
     const note = {
       id: NOTE_ID,
       content: api.caps.html.trust(
-        `<abbr title="偶尔编程" data-action="${OPEN_DEVTOOLS}" tabindex="0">程序员</abbr>.`,
+        `<button title="偶尔编程" data-action="${OPEN_DEVTOOLS}" tabindex="0">程序员</button>`,
       ),
     };
     notes.upsertNote({ contentStr: "十年前的我", note });
