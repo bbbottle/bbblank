@@ -66,23 +66,12 @@ const LittleCrow = ({
     return () => ctrl.abort();
   }, [html, posts]);
 
-  if (state.kind === "loading")
-    return (
-      <div style={{ display: "grid", placeItems: "center" }}>
-        <Square blink />
-      </div>
-    );
+  if (state.kind === "loading") return <Square blink />;
 
   return (
     <section>
       {state.kind === "ready" ? (
         <article style={{ marginTop: "6rem" }}>
-          <h3>{state.post.title}</h3>
-          <p className="heti-meta heti-small">
-            <time dateTime={state.post.createdAt}>
-              {state.post.createdAt.slice(0, 10)}
-            </time>
-          </p>
           <div dangerouslySetInnerHTML={{ __html: state.post.content.html }} />
         </article>
       ) : (
@@ -92,12 +81,17 @@ const LittleCrow = ({
             : `文章加载失败：${state.message}`}
         </p>
       )}
-      <hr style={{ marginTop: "6rem" }} />
-      <p className="heti-meta heti-small">
-        <a data-link href="/">
-          <Square />
-        </a>
-      </p>
+
+      <article style={{ marginTop: "6rem" }}>
+        <time className="heti-small">{/* p.createdAt.slice(0, 10) */}-</time>
+        <div>
+          <p>
+            <a data-link href="/">
+              返回
+            </a>
+          </p>
+        </div>
+      </article>
     </section>
   );
 };

@@ -77,9 +77,11 @@ const Blog = ({
       <article style={{ marginTop: "6rem" }}>
         <time className="heti-small">{/* p.createdAt.slice(0, 10) */}-</time>
         <div>
-          <a data-link href="/">
-            <Square />
-          </a>
+          <p>
+            <a data-link href="/">
+              返回
+            </a>
+          </p>
         </div>
       </article>
     </section>
