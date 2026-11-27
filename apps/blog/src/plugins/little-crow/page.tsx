@@ -45,7 +45,13 @@ const LittleCrow = ({
   }, [html, posts]);
 
   if (state.kind === "loading")
-    return <span className={`${ShellClass.square} ${ShellClass.blink}`} role="status" aria-label="加载中" />;
+    return (
+      <span
+        className={`${ShellClass.square} ${ShellClass.blink}`}
+        role="status"
+        aria-label="加载中"
+      />
+    );
 
   return (
     <section>
@@ -62,7 +68,7 @@ const LittleCrow = ({
       )}
 
       <article>
-        <time className="heti-small">{/* p.createdAt.slice(0, 10) */}-</time>
+        <time className="heti-small">{/* p.createdAt.slice(0, 10) */}.</time>
         <div>
           <p>
             <a data-link href="/">

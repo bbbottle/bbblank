@@ -40,7 +40,13 @@ const Blog = ({
   }, [html, posts]);
 
   if (state.kind === "loading")
-    return <span className={`${ShellClass.square} ${ShellClass.blink}`} role="status" aria-label="加载中" />;
+    return (
+      <span
+        className={`${ShellClass.square} ${ShellClass.blink}`}
+        role="status"
+        aria-label="加载中"
+      />
+    );
   if (state.kind === "error") return <p>文章加载失败：{state.message}</p>;
   return (
     <section>
@@ -48,7 +54,7 @@ const Blog = ({
         <Fragment key={p.id}>
           <article>
             <time dateTime={p.createdAt} className="heti-small">
-              {/* p.createdAt.slice(0, 10) */}-
+              {/* p.createdAt.slice(0, 10) */}.
             </time>
             <div dangerouslySetInnerHTML={{ __html: p.content.html }} />
           </article>
@@ -56,7 +62,7 @@ const Blog = ({
       ))}
 
       <article>
-        <time className="heti-small">{/* p.createdAt.slice(0, 10) */}-</time>
+        <time className="heti-small">{/* p.createdAt.slice(0, 10) */}.</time>
         <div>
           <p>
             <a data-link href="/">
