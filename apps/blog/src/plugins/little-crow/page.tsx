@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { HtmlFacade, TrustedHtml } from "@bbblank/host-dom";
 import type { Post, PostsService } from "../content/api";
+import { ShellClass } from "../shell/api";
 
 const POST_TITLE = "小乌鸦合集";
 
@@ -13,29 +14,6 @@ type PostState =
   | { readonly kind: "error"; readonly message: string }
   | { readonly kind: "missing" }
   | { readonly kind: "ready"; readonly post: RenderedPost };
-
-const Square = ({
-  size = 12,
-  color = "#000",
-  blink,
-}: {
-  size?: number;
-  color?: string;
-  blink?: boolean;
-}) => {
-  const cls = blink ? "blink" : "";
-  return (
-    <span
-      className={cls}
-      style={{
-        display: "inline-block",
-        width: size,
-        height: size,
-        background: color,
-      }}
-    ></span>
-  );
-};
 
 const LittleCrow = ({
   html,
@@ -66,23 +44,24 @@ const LittleCrow = ({
     return () => ctrl.abort();
   }, [html, posts]);
 
-  if (state.kind === "loading") return <Square blink />;
+  if (state.kind === "loading")
+    return <span className={`${ShellClass.square} ${ShellClass.blink}`} role="status" aria-label="加载中" />;
 
   return (
     <section>
       {state.kind === "ready" ? (
-        <article style={{ marginTop: "6rem" }}>
+        <article>
           <div dangerouslySetInnerHTML={{ __html: state.post.content.html }} />
         </article>
       ) : (
-        <p style={{ marginTop: "6rem" }}>
+        <p>
           {state.kind === "missing"
             ? `没有找到标题为「${POST_TITLE}」的文章。`
             : `文章加载失败：${state.message}`}
         </p>
       )}
 
-      <article style={{ marginTop: "6rem" }}>
+      <article>
         <time className="heti-small">{/* p.createdAt.slice(0, 10) */}-</time>
         <div>
           <p>

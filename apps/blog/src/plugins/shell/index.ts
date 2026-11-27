@@ -9,6 +9,7 @@ import { FooterNote, ShellPluginId, ShellSlots } from "./api";
 import { buildLayout } from "./layout";
 import { interceptLinks } from "./link-router";
 import { css } from "./styles";
+import { theme } from "./theme";
 import { createFooterNoteService } from "./footer-note-service";
 import { renderNotes } from "./renderer";
 
@@ -19,7 +20,7 @@ export const shell = definePlugin({
   manifest: {
     id: ShellPluginId,
     name: "Shell",
-    version: "1.1.0" as SemVer,
+    version: "1.2.0" as SemVer,
     services: { provide: [FooterNote.key] },
   },
   capabilities: [Dom, Router],
@@ -31,6 +32,7 @@ export const shell = definePlugin({
     api.services.register(FooterNote, fnService);
 
     dom.head.addStyle(css);
+    dom.head.addStyle(theme);
 
     dom.mount(RootSlot, (host) => {
       const layout = buildLayout(host);
@@ -46,7 +48,9 @@ export const shell = definePlugin({
       const offLinks = interceptLinks(host, router.navigate);
 
       const offRoute = router.onChange((path) => {
-        layout.footer.style.opacity = path !== ENTRY_PATH ? "0" : "1";
+        const hidden = path !== ENTRY_PATH;
+        layout.footer.style.opacity = hidden ? "0" : "1";
+        layout.footer.inert = hidden;
       });
 
       return () => {

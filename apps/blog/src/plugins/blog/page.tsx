@@ -3,6 +3,7 @@ import { Fragment, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { HtmlFacade, TrustedHtml } from "@bbblank/host-dom";
 import type { Post, PostsService } from "../content/api";
+import { ShellClass } from "../shell/api";
 
 const RECENT_POSTS = 4;
 
@@ -12,27 +13,6 @@ type PostsState =
   | { readonly kind: "loading" }
   | { readonly kind: "error"; readonly message: string }
   | { readonly kind: "ready"; readonly posts: ReadonlyArray<RenderedPost> };
-
-const Square = ({
-  size = 12,
-  color = "#000",
-  blink,
-}: {
-  size?: number;
-  color?: string;
-  blink?: boolean;
-}) => (
-  <span
-    className={blink ? "blink" : ""}
-    style={{
-      display: "inline-block",
-      width: size,
-      height: size,
-      background: color,
-      transition: "opacity .2s",
-    }}
-  ></span>
-);
 
 const Blog = ({
   html,
@@ -59,13 +39,14 @@ const Blog = ({
     return () => ctrl.abort();
   }, [html, posts]);
 
-  if (state.kind === "loading") return <Square blink />;
+  if (state.kind === "loading")
+    return <span className={`${ShellClass.square} ${ShellClass.blink}`} role="status" aria-label="加载中" />;
   if (state.kind === "error") return <p>文章加载失败：{state.message}</p>;
   return (
     <section>
       {state.posts.map((p, i) => (
         <Fragment key={p.id}>
-          <article style={{ marginTop: "6rem" }}>
+          <article>
             <time dateTime={p.createdAt} className="heti-small">
               {/* p.createdAt.slice(0, 10) */}-
             </time>
@@ -74,7 +55,7 @@ const Blog = ({
         </Fragment>
       ))}
 
-      <article style={{ marginTop: "6rem" }}>
+      <article>
         <time className="heti-small">{/* p.createdAt.slice(0, 10) */}-</time>
         <div>
           <p>

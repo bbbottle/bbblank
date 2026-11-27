@@ -6,6 +6,7 @@ import { ContentNoteChangeTopic, SquareClickTopic } from "./api";
 import type { ContentNote, IContentNoteService } from "./api";
 import { annotate, distribute, letterFields } from "./annotate";
 import type { Routes } from "./routes";
+import { ShellClass } from "../shell/api";
 
 export interface PageDeps {
   readonly noteService: IContentNoteService;
@@ -15,27 +16,6 @@ export interface PageDeps {
   /** 把页面区域提供为 routeSlot(path)，登记方经 Dom.mount 挂载页面内容 */
   readonly provideRoute: (path: string, el: HTMLElement) => Cleanup;
 }
-
-const Square = ({
-  size = 12,
-  color = "#000",
-  onClick,
-}: {
-  size?: number;
-  color?: string;
-  onClick?: () => void;
-}) => (
-  <span
-    onClick={onClick}
-    style={{
-      display: "inline-block",
-      width: size,
-      height: size,
-      background: color,
-      cursor: onClick ? "pointer" : undefined,
-    }}
-  ></span>
-);
 
 const useContentNotes = ({ noteService, events }: PageDeps) => {
   const [notes, setNotes] = useState<ReadonlyArray<ContentNote>>(
@@ -78,13 +58,16 @@ export const Entry = (deps: PageDeps) => {
     <article>
       <p>{openlings}</p>
       <p>{body}</p>
-      <div className="signature" style={{ textAlign: "right" }}>
-        <p style={{ display: "inline-flex", flexDirection: "column" }}>
-          <span style={{ display: "inline-flex", alignItems: "center" }}>
+      <div className="signature">
+        <p>
+          <span className="signature-name">
             <span>{author}</span>
             {[0, 1].map((index) => (
-              <Square
+              <button
                 key={index}
+                type="button"
+                className={ShellClass.square}
+                aria-label={`署名方块 ${index + 1}`}
                 onClick={() => deps.events.emit(SquareClickTopic, { index })}
               />
             ))}
@@ -99,10 +82,12 @@ export const Entry = (deps: PageDeps) => {
 
 export const NotFound = ({ path }: { readonly path: string }) => (
   <article>
-    <h1>404</h1>
-    <a href="/" data-link>
-      /
-    </a>
+    <p>
+      此页不存在。
+      <a href="/" data-link>
+        返回
+      </a>
+    </p>
   </article>
 );
 

@@ -1,39 +1,6 @@
 export const css = `
   /* 最小高度相对 body 而非 100vh：底部停靠的面板（devtools）收缩 body 时，footer 仍贴在可视区域底部 */
   html, body { height: 100%; }
-  body { margin: 0; background: var(--bg, #fff); color: var(--fg, #222);
-    font: 16px/1.7 system-ui, -apple-system, sans-serif; }
-  .shell { max-width: 42rem; margin: 0 auto; padding: 0 1.25rem; min-height: 100%; box-sizing: border-box;
-    display: flex; flex-direction: column; }
-  .shell > header { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 0; }
-  .shell > header nav a { margin-right: 1rem; }
-  .shell > main { flex: 1; }
-  .shell > footer { padding-bottom: 2rem; border-block-start-color: #f1f1f1 !important }
-  .shell figure > img { max-width: 100%; }
-  .shell figcaption { padding: 4px; font: smaller }
-  a { color: var(--link, black); text-decoration: none; 
-    color: black;
-    text-decoration: none;
-    padding-block-end: 1px;
-    margin-inline-start: 1px;
-    margin-inline-end: 1px;
-    border-block-end: 1px dotted;
-  }
-
-  /* 脚注中的可交互元素（FootnoteActionTopic）；选择器需高于 heti 的 .heti abbr[title]（cursor: help） */
-  .shell.heti > footer [data-action] { cursor: pointer; }
-  :root {
-    --blink-speed: .5s;
-  }
-
-  @keyframes blink {
-    0%, 100% { opacity: .5; }
-    50% { opacity: 0; }
-  }
-
-  .blink {
-    animation: blink var(--blink-speed) infinite;
-  }
 /*!
  * Project: Heti
  * URL: https://github.com/sivan/heti

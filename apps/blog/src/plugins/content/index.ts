@@ -30,7 +30,7 @@ export const content = definePlugin({
     // 1.2.0：新增 content.posts 服务
     version: "1.2.0" as SemVer,
     // FooterNote 服务自 shell 1.1.0 起提供
-    dependencies: [{ id: ShellPluginId, range: "^1.1.0" }],
+    dependencies: [{ id: ShellPluginId, range: "^1.2.0" }],
     // 提供服务需要在 manifest 中声明（§10.5），否则 register 会抛 PermissionDenied
     services: { provide: [ContentNoteService.key, ContentRoutes.key, ContentPosts.key] },
   },

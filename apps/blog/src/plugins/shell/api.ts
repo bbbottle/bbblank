@@ -23,6 +23,12 @@ export const ShellSlots = {
   footer: defineSlot("footer"),
 } as const;
 
+/** shell 样式（./theme）提供的全站类名；页面插件经此引用，不各自定义方块样式 */
+export const ShellClass = {
+  square: "bb-square",
+  blink: "blink",
+} as const;
+
 export type Note = Schema.Schema.Type<typeof NoteSchema>;
 
 export interface FooterNoteService {
