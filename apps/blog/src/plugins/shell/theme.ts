@@ -95,6 +95,7 @@ export const theme = `
     button.bb-square:hover { opacity: .7; }
   }
   button.bb-square:active { transform: scale(.92); }
+  button.bb-square:focus-visible { outline-offset: 1px; }
 
   .signature { text-align: right; }
   .signature > p { display: inline-flex; flex-direction: column; text-indent: 0; }
