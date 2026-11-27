@@ -37,8 +37,10 @@ export const theme = `
   .shell > header:not(:has(> div:empty)) + main { padding-block-start: 0; }
   .shell > main section > * + * { margin-block-start: calc(var(--bb-space) * 4); }
 
-  .shell > footer { padding-block-end: calc(var(--bb-space) * 2); transition: opacity 150ms ease-out; }
+  .shell > footer { padding-block-end: calc(var(--bb-space) * 2); }
   .shell.heti > footer.heti-fn { border-block-start-color: var(--bb-rule); color: var(--bb-muted); }
+  /* 与脚注对齐：12px 同 .heti .heti-fn ol 的 margin-block-start，32px 同 .heti ol 的 padding-inline-start；保留 heti 的编号标记 */
+  .shell.heti > footer .bb-footer-back { margin-block: 12px 0; padding-inline-start: 32px; }
   .shell.heti .heti-fn li:target,
   .shell.heti sup:target,
   .shell.heti sup a:target { background-color: var(--bb-selection); }
@@ -109,13 +111,14 @@ export const theme = `
 
   @keyframes bb-enter { from { opacity: 0; } }
   .shell > main > *,
-  .shell > main section { animation: bb-enter 150ms ease-out; }
+  .shell > main section,
+  .shell > footer > * { animation: bb-enter 150ms ease-out; }
 
   @media (prefers-reduced-motion: reduce) {
     .blink { animation: none; opacity: .5; }
     .shell > main > *,
-    .shell > main section { animation: none; }
-    .shell > footer,
+    .shell > main section,
+    .shell > footer > * { animation: none; }
     button.bb-square { transition: none; }
   }
 `;

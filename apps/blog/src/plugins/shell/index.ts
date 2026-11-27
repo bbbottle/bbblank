@@ -11,16 +11,16 @@ import { interceptLinks } from "./link-router";
 import { css } from "./styles";
 import { theme } from "./theme";
 import { createFooterNoteService } from "./footer-note-service";
-import { renderNotes } from "./renderer";
+import { renderFooter } from "./renderer";
 
-/** 脚注只属于 Entry（content 的 "/" 路由），其他页面隐藏 footer */
+/** 脚注只属于 Entry（content 的 "/" 路由）；其他页面的 footer 显示返回 Entry 的链接（见 ./renderer） */
 const ENTRY_PATH = "/";
 
 export const shell = definePlugin({
   manifest: {
     id: ShellPluginId,
     name: "Shell",
-    version: "1.2.0" as SemVer,
+    version: "1.3.0" as SemVer,
     services: { provide: [FooterNote.key] },
   },
   capabilities: [Dom, Router],
@@ -37,7 +37,7 @@ export const shell = definePlugin({
     dom.mount(RootSlot, (host) => {
       const layout = buildLayout(host);
 
-      const stopNotes = renderNotes(layout.footer, fnService, api.events);
+      const stopFooter = renderFooter(layout.footer, fnService, api.events, router, ENTRY_PATH);
 
       const offs = [
         dom.provideSlot(ShellSlots.headerRight, layout.headerRight),
@@ -47,16 +47,9 @@ export const shell = definePlugin({
 
       const offLinks = interceptLinks(host, router.navigate);
 
-      const offRoute = router.onChange((path) => {
-        const hidden = path !== ENTRY_PATH;
-        layout.footer.style.opacity = hidden ? "0" : "1";
-        layout.footer.inert = hidden;
-      });
-
       return () => {
         offLinks();
-        void offRoute();
-        void stopNotes();
+        void stopFooter();
         for (const off of offs) void off();
       };
     });

@@ -82,12 +82,7 @@ export const Entry = (deps: PageDeps) => {
 
 export const NotFound = ({ path }: { readonly path: string }) => (
   <article>
-    <p>
-      此页不存在。
-      <a href="/" data-link>
-        返回
-      </a>
-    </p>
+    <p>此页不存在。</p>
   </article>
 );
 

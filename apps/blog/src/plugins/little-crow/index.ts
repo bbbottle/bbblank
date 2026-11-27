@@ -17,7 +17,7 @@ export const littleCrow = definePlugin({
   manifest: {
     id: LittleCrowPluginId,
     name: "Little Crow",
-    version: "1.1.0" as SemVer,
+    version: "1.1.1" as SemVer,
     // content.posts 自 content 1.2.0 起提供
     dependencies: [{ id: ContentPluginId, range: "^1.2.0" }],
   },

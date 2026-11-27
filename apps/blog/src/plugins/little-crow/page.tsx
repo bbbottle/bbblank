@@ -1,4 +1,4 @@
-/** 小乌鸦合集页面：展示形式与 /blog 相同，远程 HTML 经 Html capability 净化后渲染，末尾为返回主页的方块链接 */
+/** 小乌鸦合集页面：展示形式与 /blog 相同，远程 HTML 经 Html capability 净化后渲染，返回首页的链接由 shell 在 footer 中提供 */
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { HtmlFacade, TrustedHtml } from "@bbblank/host-dom";
@@ -66,17 +66,6 @@ const LittleCrow = ({
             : `文章加载失败：${state.message}`}
         </p>
       )}
-
-      <article>
-        <time className="heti-small">{/* p.createdAt.slice(0, 10) */}.</time>
-        <div>
-          <p>
-            <a data-link href="/">
-              返回
-            </a>
-          </p>
-        </div>
-      </article>
     </section>
   );
 };

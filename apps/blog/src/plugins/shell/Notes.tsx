@@ -73,3 +73,16 @@ export const createNotes = (
 ) => {
   return <Notes fnService={fnService} evtBus={evtBus} />;
 };
+
+/** 非 Entry 路由的 footer 内容：返回 Entry 的链接；以单条有序列表呈现，左缘与脚注文字对齐（.bb-footer-back，见 ./theme） */
+export const BackLink = ({ href }: { readonly href: string }) => (
+  <ol className="bb-footer-back">
+    <li>
+      <a href={href} data-link>
+        返回
+      </a>
+    </li>
+  </ol>
+);
+
+export const createBackLink = (href: string) => <BackLink href={href} />;

@@ -60,17 +60,6 @@ const Blog = ({
           </article>
         </Fragment>
       ))}
-
-      <article>
-        <time className="heti-small">{/* p.createdAt.slice(0, 10) */}.</time>
-        <div>
-          <p>
-            <a data-link href="/">
-              返回
-            </a>
-          </p>
-        </div>
-      </article>
     </section>
   );
 };
