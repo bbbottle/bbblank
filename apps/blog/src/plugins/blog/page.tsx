@@ -53,9 +53,11 @@ const Blog = ({
       {state.posts.map((p, i) => (
         <Fragment key={p.id}>
           <article>
-            <time dateTime={p.createdAt} className="heti-small">
-              {/* p.createdAt.slice(0, 10) */}.
-            </time>
+            {i > 0 && (
+              <time dateTime={p.createdAt} className="heti-small">
+                {/* p.createdAt.slice(0, 10) */}.
+              </time>
+            )}
             <div dangerouslySetInnerHTML={{ __html: p.content.html }} />
           </article>
         </Fragment>

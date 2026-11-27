@@ -70,7 +70,7 @@ export const plugins: ReadonlyArray<PluginEntry> = [
   {
     id: BlogPluginId,
     name: "Blog",
-    version: "1.2.1",
+    version: "1.2.2",
     description: "组装的文字。",
     builtin: false,
     load: () => import("./blog").then((m) => m.blog),
