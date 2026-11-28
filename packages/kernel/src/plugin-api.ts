@@ -4,6 +4,7 @@
  * 所有"插件代码在内核之外被调用"的入口都经过 guard：异常归因到插件并交给监管器。
  */
 import { Cause, Context, Effect, Exit, Fiber, Scope, Stream } from "effect";
+import { isExpectedServiceFailure } from "@bbblank/sdk";
 import type {
   AccessLevel,
   Cleanup,
@@ -100,7 +101,7 @@ export const guardWith =
     }
   };
 
-/** 服务实现 Proxy：方法 throw/reject 归因给提供者，并把原错误继续抛给调用方 */
+/** 服务实现 Proxy：方法 throw/reject 归因给提供者（预期失败除外，见 isExpectedServiceFailure），并把原错误继续抛给调用方 */
 export const guardService = <T>(
   impl: T,
   report: (cause: unknown) => void,
@@ -114,12 +115,12 @@ export const guardService = <T>(
         const r = fn.apply(self, args);
         return isPromiseLike(r)
           ? Promise.resolve(r).then(undefined, (e) => {
-              report(e);
+              if (!isExpectedServiceFailure(e)) report(e);
               throw e;
             })
           : r;
       } catch (e) {
-        report(e);
+        if (!isExpectedServiceFailure(e)) report(e);
         throw e;
       }
     };

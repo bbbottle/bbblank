@@ -1,7 +1,7 @@
 /** §10.2 故障隔离、监管重启、熔断 */
 import { assert, describe, it } from '@effect/vitest';
 import { Schema } from 'effect';
-import { definePlugin, defineService, defineTopic } from '@bbblank/sdk';
+import { ServiceFailure, definePlugin, defineService, defineTopic } from '@bbblank/sdk';
 import { id, makeKernel, mf, sleep, statusOf, waitFor } from './test-kit.js';
 
 const Ping = defineTopic('ping', Schema.Struct({ fail: Schema.Boolean }));
@@ -160,6 +160,46 @@ describe('fault isolation', () => {
     assert.throws(() => calc.div(1, 0), RangeError);
     await waitFor(() => providerSetups === 2 && statusOf(k, 'provider') === 'enabled');
     assert.strictEqual(statusOf(k, 'consumer'), 'enabled');
+    await k.dispose();
+  });
+
+  it('expected service failures (ServiceFailure, AbortError) reach the caller without restarting the provider', async () => {
+    interface Feed {
+      readonly load: (mode: 'fail' | 'abort' | 'bug') => Promise<string>;
+    }
+    const FeedSvc = defineService<Feed>('feed');
+    let providerSetups = 0;
+    const provider = definePlugin({
+      manifest: mf('provider', { services: { provide: ['feed'] } }),
+      capabilities: [] as const,
+      setup: api => {
+        providerSetups++;
+        api.services.register(FeedSvc, {
+          load: async mode => {
+            if (mode === 'fail') throw new ServiceFailure({ service: 'feed', message: 'offline' });
+            if (mode === 'abort') throw Object.assign(new Error('aborted'), { name: 'AbortError' });
+            throw new TypeError('bug');
+          },
+        });
+      },
+    });
+    let feed!: Feed;
+    const consumer = definePlugin({
+      manifest: mf('consumer'),
+      capabilities: [] as const,
+      setup: async api => {
+        feed = await api.services.get(FeedSvc);
+      },
+    });
+    const k = makeKernel({ provider, consumer });
+    await k.view.install(id('provider'));
+    await k.view.install(id('consumer'));
+    assert.instanceOf(await feed.load('fail').catch(e => e), ServiceFailure);
+    assert.strictEqual((await feed.load('abort').catch(e => e)).name, 'AbortError');
+    await sleep(20);
+    assert.strictEqual(providerSetups, 1);
+    assert.instanceOf(await feed.load('bug').catch(e => e), TypeError);
+    await waitFor(() => providerSetups === 2 && statusOf(k, 'provider') === 'enabled');
     await k.dispose();
   });
 

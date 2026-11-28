@@ -356,7 +356,7 @@ export class ConfigInvalid extends Data.TaggedError("ConfigInvalid")<{
   id: PluginID;
   issue: string;
 }> {}
-// sdk 侧新增的契约错误：StorageError（Storage capability）、EventPayloadInvalid（emit 校验失败，同步抛给发布方）
+// sdk 侧新增的契约错误：StorageError（Storage capability）、EventPayloadInvalid（emit 校验失败，同步抛给发布方）、ServiceFailure（服务方法的预期失败，不触发监管重启）
 
 export type PluginError =
   | PluginNotFound
@@ -733,7 +733,7 @@ readonly audit?: Layer.Layer<AuditLog>;            // §10.5 缺省为内存环�
 | 入口                                  | 处理                                                                                        |
 | ------------------------------------- | ------------------------------------------------------------------------------------------- |
 | `events.on` 回调                      | 同步 throw / 返回 rejected Promise → 归因订阅者，订阅继续存活                               |
-| 插件注册的服务（`services.register`） | impl 被包成 Proxy：方法 throw/reject → 归因**提供者**；调用方仍收到原错误（它必须知道失败） |
+| 插件注册的服务（`services.register`） | impl 被包成 Proxy：方法 throw/reject → 归因**提供者**；调用方仍收到原错误（它必须知道失败）。预期失败不归因、不重启：`ServiceFailure`（sdk）与调用方取消（`name === "AbortError"`），见 `isExpectedServiceFailure` |
 | `FacadeContext.scoped` 中的 fiber     | 非中断的失败/defect → 归因该插件                                                            |
 | 交给 capability 的插件回调            | capability 实现用 `ctx.guard(cb)` 包装（例如 `dom.mount(slot, ctx.guard(render))`）         |
 | 平台级未捕获异常                      | 宿主（如 `window.onerror`/`unhandledrejection`）自行归因后调用 `KernelView.reportFault`     |

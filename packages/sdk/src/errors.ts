@@ -28,3 +28,19 @@ export class EventPayloadInvalid extends Data.TaggedError('EventPayloadInvalid')
   topic: string;
   issue: string;
 }> {}
+
+/**
+ * 服务方法的预期失败（如远程请求失败）：调用方据此处理，内核不归因给服务提供者、不触发监管重启（§10.2）。
+ * message 面向日志；cause 为底层错误。
+ */
+export class ServiceFailure extends Data.TaggedError('ServiceFailure')<{
+  service: string;
+  message: string;
+  cause?: unknown;
+}> {}
+
+/** 服务方法的失败是否属于预期失败：ServiceFailure（按 _tag 判断，不依赖实例来源），或调用方取消（name 为 "AbortError"） */
+export const isExpectedServiceFailure = (e: unknown): boolean =>
+  typeof e === 'object' &&
+  e !== null &&
+  ((e as { _tag?: unknown })._tag === 'ServiceFailure' || (e as { name?: unknown }).name === 'AbortError');
