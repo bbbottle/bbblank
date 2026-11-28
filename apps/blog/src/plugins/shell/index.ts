@@ -12,6 +12,7 @@ import { css } from "./styles";
 import { theme } from "./theme";
 import { createFooterNoteService } from "./footer-note-service";
 import { renderFooter } from "./renderer";
+import { createScrollKeeper } from "./scroll";
 
 /** 脚注只属于 Entry（content 的 "/" 路由）；其他页面的 footer 显示返回 Entry 的链接（见 ./renderer） */
 const ENTRY_PATH = "/";
@@ -20,7 +21,7 @@ export const shell = definePlugin({
   manifest: {
     id: ShellPluginId,
     name: "Shell",
-    version: "1.5.1" as SemVer,
+    version: "1.6.0" as SemVer,
     services: { provide: [FooterNote.key] },
   },
   capabilities: [Dom, Router],
@@ -48,10 +49,17 @@ export const shell = definePlugin({
         dom.provideSlot(ShellSlots.footer, layout.footer),
       ];
 
-      const offLinks = interceptLinks(host, router.navigate);
+      const scroll = createScrollKeeper(host);
+      const offScroll = router.onChange(scroll.onRoute);
+      const offLinks = interceptLinks(host, (path) => {
+        scroll.beforeNavigate(path);
+        router.navigate(path);
+      });
 
       return () => {
         offLinks();
+        void offScroll();
+        scroll.dispose();
         void stopFooter();
         for (const off of offs) void off();
       };
