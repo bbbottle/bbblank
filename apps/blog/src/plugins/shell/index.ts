@@ -2,6 +2,7 @@
  * shell —— 根插件：在宿主预置的 RootSlot 中搭骨架，提供 ShellSlots（见 ./api），
  * 并把站内链接交给路由。
  */
+import notoSerifSc from "@fontsource/noto-serif-sc/400.css?inline";
 import { definePlugin } from "@bbblank/sdk";
 import type { SemVer } from "@bbblank/sdk";
 import { Dom, RootSlot, Router } from "@bbblank/host-dom";
@@ -21,7 +22,7 @@ export const shell = definePlugin({
   manifest: {
     id: ShellPluginId,
     name: "Shell",
-    version: "1.6.0" as SemVer,
+    version: "1.6.1" as SemVer,
     services: { provide: [FooterNote.key] },
   },
   capabilities: [Dom, Router],
@@ -32,6 +33,8 @@ export const shell = definePlugin({
 
     api.services.register(FooterNote, fnService);
 
+    // 正文网络宋体（OFL-1.1）：101 个 unicode-range 分片，浏览器只下载页面用到的字符所在分片
+    dom.head.addStyle(notoSerifSc);
     dom.head.addStyle(css);
     dom.head.addStyle(theme);
     // 浏览器界面色与页面背景一致（取值同 ./theme 的 --bb-bg）

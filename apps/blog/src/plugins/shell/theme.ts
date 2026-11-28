@@ -23,6 +23,8 @@ export const theme = `
   }
 
   body { margin: 0; background: var(--bb-bg); color: var(--bb-fg); }
+  /* 正文统一使用网络宋体 Noto Serif SC（见 ./index 注入的 @fontsource 样式）；脚注与上标仍为 heti 的黑体 */
+  .shell.heti--ancient { font-family: "Times New Roman", Times, "Noto Serif SC", "Heti Song", serif; }
   .shell { max-width: 37rem; margin: 0 auto; padding: 0 1.25rem; min-height: 100%; box-sizing: border-box;
     display: flex; flex-direction: column; }
   .shell ::selection { background: var(--bb-selection); }

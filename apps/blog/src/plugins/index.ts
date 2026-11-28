@@ -38,7 +38,7 @@ export const plugins: ReadonlyArray<PluginEntry> = [
   {
     id: ShellPluginId,
     name: "Shell",
-    version: "1.6.0",
+    version: "1.6.1",
     description: "页面骨架、初始化挂载点、站内路由。",
     builtin: true,
     load: () => import("./shell").then((m) => m.shell),

@@ -33,6 +33,9 @@ importers:
       '@bbblank/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@fontsource/noto-serif-sc':
+        specifier: 5.3.1
+        version: 5.3.1
       effect:
         specifier: 4.0.0-rc.112
         version: 4.0.0-rc.112
@@ -489,6 +492,9 @@ packages:
     peerDependenciesMeta:
       '@noble/hashes':
         optional: true
+
+  '@fontsource/noto-serif-sc@5.3.1':
+    resolution: {integrity: sha512-nIK2HyNGcUi2TGwIfrk2MItkh0O3Y5+TI8iPfPSzoNY6uyXYfQ9qqch8czk3aa1VhV4EU52uwCYCe1UDKJELpg==}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -1791,6 +1797,8 @@ snapshots:
     optional: true
 
   '@exodus/bytes@1.16.0': {}
+
+  '@fontsource/noto-serif-sc@5.3.1': {}
 
   '@img/colour@1.1.0': {}
 
