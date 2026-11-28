@@ -9,7 +9,7 @@ export const theme = `
     --bb-selection: rgba(0, 0, 0, .08);
     --bb-space: 24px;
     --bb-ease: cubic-bezier(.23, 1, .32, 1);
-    --bb-mark: 4px;
+    --bb-mark: 2px;
     --blink-speed: 1.2s;
   }
   @media (prefers-color-scheme: dark) {
@@ -37,14 +37,14 @@ export const theme = `
   }
   .shell > header:not(:has(> div:empty)) + main { padding-block-start: 0; }
   .shell > main section > * + * { margin-block-start: calc(var(--bb-space) * 4); }
-  /* 文章列表：相邻文章之间以 --bb-mark 方块分节，上下各 2 个间距单位；清零相邻处正文的外边距，使间距不受远程 HTML 影响 */
+  /* 文章列表：相邻文章之间以 --bb-mark 方块分节，上下各 4 个间距单位；清零相邻处正文的外边距，使间距不受远程 HTML 影响 */
   .shell > main .bb-posts > article + article { margin-block-start: 0; }
   .shell > main .bb-posts > article + article::before {
     content: "";
     display: block;
     inline-size: var(--bb-mark);
     block-size: var(--bb-mark);
-    margin: calc(var(--bb-space) * 2) auto;
+    margin: calc(var(--bb-space) * 4) auto;
     background: var(--bb-muted);
   }
   .shell > main .bb-posts > article + article > div > :first-child { margin-block-start: 0; }
