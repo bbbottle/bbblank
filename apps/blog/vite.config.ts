@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { appendFileSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -112,26 +112,8 @@ const vendoredLicenses = (): Plugin => ({
   },
 });
 
-const licenseBannerFirst = (): Plugin => ({
-  name: "bbblank:license-banner-first",
-  apply: "build",
-  writeBundle(options) {
-    if (!options.dir) return;
-    const banner = "/*! Third-party licenses: /licenses.md */";
-    for (const file of readdirSync(join(options.dir, "assets"))) {
-      if (!file.endsWith(".js")) continue;
-      const path = join(options.dir, "assets", file);
-      const code = readFileSync(path, "utf8");
-      if (code.startsWith(banner)) continue;
-      const at = code.indexOf(`${banner}\n`);
-      if (at < 0) continue;
-      writeFileSync(path, `${banner}\n${code.slice(0, at)}${code.slice(at + banner.length + 1)}`);
-    }
-  },
-});
-
 export default defineConfig({
-  plugins: [playgroundEffect(), playgroundTypes(), vendoredLicenses(), licenseBannerFirst()],
+  plugins: [playgroundEffect(), playgroundTypes(), vendoredLicenses()],
   define: {
     __BUILD_COMMIT__: JSON.stringify(commit),
     __BUILD_DIRTY__: JSON.stringify(dirty),
