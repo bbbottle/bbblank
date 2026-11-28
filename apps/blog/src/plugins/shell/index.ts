@@ -20,7 +20,7 @@ export const shell = definePlugin({
   manifest: {
     id: ShellPluginId,
     name: "Shell",
-    version: "1.5.0" as SemVer,
+    version: "1.5.1" as SemVer,
     services: { provide: [FooterNote.key] },
   },
   capabilities: [Dom, Router],
@@ -33,6 +33,9 @@ export const shell = definePlugin({
 
     dom.head.addStyle(css);
     dom.head.addStyle(theme);
+    // 浏览器界面色与页面背景一致（取值同 ./theme 的 --bb-bg）
+    dom.head.addMeta({ name: "theme-color", content: "#ffffff", media: "(prefers-color-scheme: light)" });
+    dom.head.addMeta({ name: "theme-color", content: "#161616", media: "(prefers-color-scheme: dark)" });
 
     dom.mount(RootSlot, (host) => {
       const layout = buildLayout(host);
