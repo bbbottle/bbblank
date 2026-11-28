@@ -1,5 +1,5 @@
 /** /blog 页面：最近几篇文章，远程 HTML 经 Html capability 净化后渲染 */
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { HtmlFacade, TrustedHtml } from "@bbblank/host-dom";
 import type { Post, PostsService } from "../content/api";
@@ -49,18 +49,11 @@ const Blog = ({
     );
   if (state.kind === "error") return <p>文章加载失败：{state.message}</p>;
   return (
-    <section>
-      {state.posts.map((p, i) => (
-        <Fragment key={p.id}>
-          <article>
-            {i > 0 && (
-              <time dateTime={p.createdAt} className="heti-small">
-                {/* p.createdAt.slice(0, 10) */}.
-              </time>
-            )}
-            <div dangerouslySetInnerHTML={{ __html: p.content.html }} />
-          </article>
-        </Fragment>
+    <section className={ShellClass.posts}>
+      {state.posts.map((p) => (
+        <article key={p.id}>
+          <div dangerouslySetInnerHTML={{ __html: p.content.html }} />
+        </article>
       ))}
     </section>
   );

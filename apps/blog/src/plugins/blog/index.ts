@@ -23,7 +23,7 @@ export const blog = definePlugin({
   manifest: {
     id: BlogPluginId,
     name: "Blog",
-    version: "1.2.2" as SemVer,
+    version: "1.2.3" as SemVer,
     // content.posts 自 content 1.2.0 起提供
     dependencies: [{ id: ContentPluginId, range: "^1.2.0" }],
   },

@@ -27,6 +27,7 @@ export const ShellSlots = {
 export const ShellClass = {
   square: "bb-square",
   blink: "blink",
+  posts: "bb-posts",
 } as const;
 
 export type Note = Schema.Schema.Type<typeof NoteSchema>;

@@ -9,6 +9,7 @@ export const theme = `
     --bb-selection: rgba(0, 0, 0, .08);
     --bb-space: 24px;
     --bb-ease: cubic-bezier(.23, 1, .32, 1);
+    --bb-mark: 4px;
     --blink-speed: 1.2s;
   }
   @media (prefers-color-scheme: dark) {
@@ -36,11 +37,32 @@ export const theme = `
   }
   .shell > header:not(:has(> div:empty)) + main { padding-block-start: 0; }
   .shell > main section > * + * { margin-block-start: calc(var(--bb-space) * 4); }
+  /* 文章列表：相邻文章之间以 --bb-mark 方块分节，上下各 2 个间距单位；清零相邻处正文的外边距，使间距不受远程 HTML 影响 */
+  .shell > main .bb-posts > article + article { margin-block-start: 0; }
+  .shell > main .bb-posts > article + article::before {
+    content: "";
+    display: block;
+    inline-size: var(--bb-mark);
+    block-size: var(--bb-mark);
+    margin: calc(var(--bb-space) * 2) auto;
+    background: var(--bb-muted);
+  }
+  .shell > main .bb-posts > article + article > div > :first-child { margin-block-start: 0; }
+  .shell > main .bb-posts > article:not(:last-child) > div > :last-child { margin-block-end: 0; }
 
   .shell > footer { padding-block-end: calc(var(--bb-space) * 2); }
   .shell.heti > footer.heti-fn { border-block-start-color: var(--bb-rule); color: var(--bb-muted); }
-  /* 与脚注对齐：12px 同 .heti .heti-fn ol 的 margin-block-start，32px 同 .heti ol 的 padding-inline-start；保留 heti 的编号标记 */
-  .shell.heti > footer .bb-footer-back { margin-block: 12px 0; padding-inline-start: 32px; }
+  /* 与脚注对齐：12px 同 .heti .heti-fn ol 的 margin-block-start，32px 同 .heti ol 的 padding-inline-start；编号位置以 --bb-mark 方块代替 */
+  .shell.heti > footer .bb-footer-back { position: relative; margin-block: 12px 0; padding-inline-start: 32px; text-indent: 0; text-align: start; }
+  .shell.heti > footer .bb-footer-back::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: calc(32px - 8px - var(--bb-mark));
+    inset-block-start: calc(50% - var(--bb-mark) / 2);
+    inline-size: var(--bb-mark);
+    block-size: var(--bb-mark);
+    background: currentColor;
+  }
   .shell.heti .heti-fn li:target,
   .shell.heti sup:target,
   .shell.heti sup a:target { background-color: var(--bb-selection); }
