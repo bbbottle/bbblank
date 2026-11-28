@@ -15,6 +15,8 @@ export interface PageDeps {
   readonly routes: Routes;
   /** 把页面区域提供为 routeSlot(path)，登记方经 Dom.mount 挂载页面内容 */
   readonly provideRoute: (path: string, el: HTMLElement) => Cleanup;
+  /** 设置页面标题（Dom.head.setTitle），返回恢复函数 */
+  readonly setTitle: (title: string) => Cleanup;
 }
 
 const useContentNotes = ({ noteService, events }: PageDeps) => {
@@ -86,6 +88,27 @@ export const Entry = (deps: PageDeps) => {
   );
 };
 
+const SITE_NAME = "bbki.ng";
+const NOT_FOUND_TITLE = "此页不存在";
+
+/** 页面标题：挂载期间设为「<title> · bbki.ng」；title 缺省时沿用站点标题 */
+const Titled = ({
+  title,
+  set,
+  children,
+}: {
+  readonly title: string | undefined;
+  readonly set: PageDeps["setTitle"];
+  readonly children: ReactElement;
+}) => {
+  useEffect(() => {
+    if (!title) return;
+    const off = set(`${title} · ${SITE_NAME}`);
+    return () => void off();
+  }, [title, set]);
+  return children;
+};
+
 export const NotFound = ({ path }: { readonly path: string }) => (
   <article>
     <p>此页不存在。</p>
@@ -111,10 +134,18 @@ const PAGES: ReadonlyMap<string, (deps: PageDeps) => ReactElement> = new Map([
 
 export const builtinPaths: ReadonlySet<string> = new Set(PAGES.keys());
 
-export const pageFor = (path: string, deps: PageDeps): ReactElement =>
-  PAGES.get(path)?.(deps) ??
-  (deps.routes.has(path) ? (
-    <RouteHost key={path} path={path} provide={deps.provideRoute} />
-  ) : (
-    <NotFound path={path} />
-  ));
+export const pageFor = (path: string, deps: PageDeps): ReactElement => {
+  const page = PAGES.get(path);
+  if (page) return page(deps);
+  if (deps.routes.has(path))
+    return (
+      <Titled key={path} title={deps.routes.titleOf(path)} set={deps.setTitle}>
+        <RouteHost path={path} provide={deps.provideRoute} />
+      </Titled>
+    );
+  return (
+    <Titled key="404" title={NOT_FOUND_TITLE} set={deps.setTitle}>
+      <NotFound path={path} />
+    </Titled>
+  );
+};

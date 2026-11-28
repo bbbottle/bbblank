@@ -23,9 +23,9 @@ export const blog = definePlugin({
   manifest: {
     id: BlogPluginId,
     name: "Blog",
-    version: "1.2.3" as SemVer,
+    version: "1.3.0" as SemVer,
     // content.posts 自 content 1.2.0 起提供
-    dependencies: [{ id: ContentPluginId, range: "^1.2.0" }],
+    dependencies: [{ id: ContentPluginId, range: "^1.3.0" }],
   },
   capabilities: [Html, Dom],
   setup: async (api) => {
@@ -36,7 +36,7 @@ export const blog = definePlugin({
       api.services.get(ContentPosts),
     ]);
 
-    api.lifecycle.addCleanup(routes.register(ROUTE));
+    api.lifecycle.addCleanup(routes.register(ROUTE, { title: "博客" }));
     dom.mount(routeSlot(ROUTE), (host) => renderBlog(host, html, posts));
 
     const note: Readonly<Note> = {

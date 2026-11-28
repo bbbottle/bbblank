@@ -46,7 +46,7 @@ export const plugins: ReadonlyArray<PluginEntry> = [
   {
     id: ContentPluginId,
     name: "Content",
-    version: "1.2.2",
+    version: "1.3.0",
     description: "按路由渲染信件，提供内容笔记与页面路由登记服务。",
     builtin: true,
     load: () => import("./content").then((m) => m.content),
@@ -70,7 +70,7 @@ export const plugins: ReadonlyArray<PluginEntry> = [
   {
     id: BlogPluginId,
     name: "Blog",
-    version: "1.2.3",
+    version: "1.3.0",
     description: "组装的文字。",
     builtin: false,
     load: () => import("./blog").then((m) => m.blog),
@@ -78,7 +78,7 @@ export const plugins: ReadonlyArray<PluginEntry> = [
   {
     id: LittleCrowPluginId,
     name: "Little Crow",
-    version: "1.1.1",
+    version: "1.2.0",
     description: "小乌鸦合集（语录）。",
     builtin: false,
     load: () => import("./little-crow").then((m) => m.littleCrow),

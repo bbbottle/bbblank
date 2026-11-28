@@ -99,6 +99,31 @@ describe('Dom capability', () => {
     await k.dispose();
   });
 
+  it('head.setTitle stacks titles and restores the previous one on cleanup', async () => {
+    document.title = 'base';
+    const seen: Array<string> = [];
+    const titled = definePlugin({
+      manifest: mf('titled'),
+      capabilities: [Dom],
+      setup: api => {
+        const offA = api.caps.dom.head.setTitle('A');
+        const offB = api.caps.dom.head.setTitle('B');
+        seen.push(document.title);
+        void offB();
+        seen.push(document.title);
+        api.caps.dom.head.setTitle('C');
+        void offA();
+        seen.push(document.title);
+      },
+    });
+    const k = kernel({ titled });
+    await k.view.install(id('titled'));
+    expect(seen).toEqual(['B', 'A', 'C']);
+    await k.view.disable(id('titled'));
+    expect(document.title).toBe('base');
+    await k.dispose();
+  });
+
   it('a throwing render is attributed to the plugin instead of breaking the host', async () => {
     let setups = 0;
     const bad = definePlugin({

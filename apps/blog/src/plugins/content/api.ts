@@ -51,8 +51,8 @@ export const ContentNoteService = defineService<IContentNoteService>(
  * 若当前正处于该路由则导航回 "/"。
  */
 export interface ContentRoutesService {
-  /** path 与内置页面或已登记路由重复时抛错 */
-  register(path: string): Cleanup;
+  /** path 与内置页面或已登记路由重复时抛错；title 为页面名，路由激活时标题为「<title> · bbki.ng」 */
+  register(path: string, opts?: { readonly title?: string }): Cleanup;
 }
 
 export const ContentRoutes = defineService<ContentRoutesService>("content.routes");

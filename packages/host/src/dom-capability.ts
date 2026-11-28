@@ -46,6 +46,8 @@ export interface DomShape {
     ) => Effect.Effect<void, never, Scope.Scope>;
     /** 注入到 `@layer plugin-<id>`，插件样式互不覆盖优先级 */
     readonly addStyle: (pluginId: PluginID, css: string) => Effect.Effect<void, never, Scope.Scope>;
+    /** 设置 document.title；多个调用按先后入栈，最后一个生效，Cleanup 后恢复栈顶（栈空时恢复 layer 创建时的标题） */
+    readonly setTitle: (pluginId: PluginID, title: string) => Effect.Effect<void, never, Scope.Scope>;
   };
 }
 
@@ -58,6 +60,7 @@ export interface DomFacade {
   readonly head: {
     addMeta(attrs: Readonly<Record<string, string>>): Cleanup;
     addStyle(css: string): Cleanup;
+    setTitle(title: string): Cleanup;
   };
 }
 
@@ -78,6 +81,7 @@ export const Dom = defineCapability<'dom', DomShape, DomFacade>('dom', (s, ctx) 
     head: {
       addMeta: attrs => write(() => ctx.scoped(s.head.addMeta(ctx.pluginId, attrs))),
       addStyle: css => write(() => ctx.scoped(s.head.addStyle(ctx.pluginId, css))),
+      setTitle: title => write(() => ctx.scoped(s.head.setTitle(ctx.pluginId, title))),
     },
   };
 });
@@ -110,6 +114,11 @@ export const DomLive = (doc: Document = globalThis.document, opts: DomLiveOption
       [RootSlot, { owner: 'host', el: opts.root ?? doc.body }],
     ]);
     const mounts = new Set<Mount>();
+    const titles: Array<{ readonly title: string }> = [];
+    const baseTitle = doc.title;
+    const syncTitle = () => {
+      doc.title = titles.at(-1)?.title ?? baseTitle;
+    };
 
     const attach = (m: Mount) => {
       const slot = slots.get(m.slot);
@@ -193,6 +202,20 @@ export const DomLive = (doc: Document = globalThis.document, opts: DomLiveOption
             style.textContent = `@layer plugin-${pluginId} {\n${css}\n}`;
             return style;
           }),
+        setTitle: (_pluginId, title) =>
+          Effect.acquireRelease(
+            Effect.sync(() => {
+              const entry = { title };
+              titles.push(entry);
+              syncTitle();
+              return entry;
+            }),
+            entry =>
+              Effect.sync(() => {
+                titles.splice(titles.indexOf(entry), 1);
+                syncTitle();
+              })
+          ).pipe(Effect.asVoid),
       },
     };
   });

@@ -3,16 +3,16 @@ import type { RouterFacade } from "@bbblank/host-dom";
 import type { ContentRoutesService } from "./api";
 
 export const createRoutes = (router: RouterFacade, builtin: ReadonlySet<string>) => {
-  const paths = new Set<string>();
+  const paths = new Map<string, string | undefined>();
   const listeners = new Set<() => void>();
   const emit = () => {
     for (const cb of listeners) cb();
   };
 
   const service: ContentRoutesService = {
-    register: (path) => {
+    register: (path, opts) => {
       if (builtin.has(path) || paths.has(path)) throw new Error(`route "${path}" is already registered`);
-      paths.add(path);
+      paths.set(path, opts?.title);
       emit();
       return () => {
         paths.delete(path);
@@ -26,6 +26,7 @@ export const createRoutes = (router: RouterFacade, builtin: ReadonlySet<string>)
   return {
     service,
     has: (path: string) => paths.has(path),
+    titleOf: (path: string) => paths.get(path),
     onChange: (cb: () => void) => {
       listeners.add(cb);
       return () => void listeners.delete(cb);

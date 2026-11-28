@@ -17,9 +17,9 @@ export const littleCrow = definePlugin({
   manifest: {
     id: LittleCrowPluginId,
     name: "Little Crow",
-    version: "1.1.1" as SemVer,
+    version: "1.2.0" as SemVer,
     // content.posts 自 content 1.2.0 起提供
-    dependencies: [{ id: ContentPluginId, range: "^1.2.0" }],
+    dependencies: [{ id: ContentPluginId, range: "^1.3.0" }],
   },
   capabilities: [Html, Dom],
   setup: async (api) => {
@@ -30,7 +30,7 @@ export const littleCrow = definePlugin({
       api.services.get(ContentPosts),
     ]);
 
-    api.lifecycle.addCleanup(routes.register(LITTLE_CROW_ROUTE));
+    api.lifecycle.addCleanup(routes.register(LITTLE_CROW_ROUTE, { title: "小乌鸦合集" }));
     dom.mount(routeSlot(LITTLE_CROW_ROUTE), (host) => renderLittleCrow(host, html, posts));
 
     const note: Readonly<Note> = {
