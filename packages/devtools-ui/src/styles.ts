@@ -24,7 +24,7 @@ const base = /* css */ `
 
   all: initial;
   position: fixed;
-  inset: auto 0 0 0;
+  inset: auto 0 var(--dt-bottom, 0px) 0;
   z-index: 2147483000;
   display: flex;
   flex-direction: column;

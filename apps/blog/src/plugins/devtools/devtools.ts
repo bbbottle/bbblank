@@ -140,6 +140,8 @@ export const createDevtools = (
   /** 存储中记录的标签：面板插件可能晚于 devtools 登记，登记时再切换过去 */
   let wanted: string | undefined;
   let height = 320;
+  /** 用户选择的高度（拖动或存储）；实际高度 height 另受可视视口约束（如软键盘弹出时） */
+  let preferred = 320;
 
   const ordered = () => [...tabs.values()].sort((a, b) => a.order - b.order);
   const isShown = (id: string) => !host.hidden && id === current;
@@ -232,11 +234,27 @@ export const createDevtools = (
 
   // ---------- 抽屉 ----------
 
-  const setHeight = (px: number) => {
-    height = Math.max(MIN_HEIGHT, Math.min(window.innerHeight - 40, px));
+  const vv = window.visualViewport;
+  const narrowTouch = matchMedia("(max-width: 640px) and (pointer: coarse)");
+  /** 缺省高度：窄屏触屏为可视视口高度的 60%，否则 320px */
+  const defaultHeight = () => (narrowTouch.matches ? Math.round((vv?.height ?? window.innerHeight) * 0.6) : 320);
+  /** 按可视视口约束实际高度；软键盘等使可视视口小于布局视口时，抽屉抬到可视区域底部 */
+  const applyHeight = () => {
+    const prev = height;
+    const viewport = vv?.height ?? window.innerHeight;
+    const inset = vv ? Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) : 0;
+    height = Math.max(MIN_HEIGHT, Math.min(viewport - 40, preferred));
     host.style.setProperty("--dt-height", `${height}px`);
-    if (!host.hidden) env.dock(height);
+    host.style.setProperty("--dt-bottom", `${inset}px`);
+    if (!host.hidden && height !== prev) env.dock(height);
   };
+  const setHeight = (px: number) => {
+    preferred = px;
+    applyHeight();
+  };
+  vv?.addEventListener("resize", applyHeight);
+  vv?.addEventListener("scroll", applyHeight);
+  window.addEventListener("resize", applyHeight);
 
   const resizer = h("div", {
     class: "resizer",
@@ -249,7 +267,7 @@ export const createDevtools = (
       const up = () => {
         target.removeEventListener("pointermove", move);
         target.removeEventListener("pointerup", up);
-        void storage.set("height", String(height));
+        void storage.set("height", String(preferred));
       };
       target.addEventListener("pointermove", move);
       target.addEventListener("pointerup", up);
@@ -302,13 +320,13 @@ export const createDevtools = (
 
   void Promise.all([storage.get("height"), storage.get("tab"), storage.get("seed")]).then(
     ([hgt, tab, seed]) => {
-      setHeight(hgt ? Number(hgt) : 320);
+      setHeight(hgt ? Number(hgt) : defaultHeight());
       if (seed) setSeed(seed, false);
       wanted = tab;
       if (tab && tabs.has(tab)) select(tab, false);
     },
   );
-  setHeight(height);
+  setHeight(defaultHeight());
 
   return {
     host,
@@ -320,6 +338,9 @@ export const createDevtools = (
       closeSettings();
       offModel();
       offDevelopers();
+      vv?.removeEventListener("resize", applyHeight);
+      vv?.removeEventListener("scroll", applyHeight);
+      window.removeEventListener("resize", applyHeight);
     },
   };
 };
