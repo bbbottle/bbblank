@@ -29,6 +29,7 @@ const list = (items: ReadonlyArray<Child>) => (items.length ? h("div", null, ite
 export const pluginsPanel = (model: DevtoolsModel, self: string, developers: DeveloperRegistry): Panel => {
   const counts = toolbarText("");
   const split = splitWidget();
+  split.verticalBelow = 560;
   const tree = treeOutline();
   /** 开发插件（经 DevtoolsDeveloper 登记，如 Playground 的草稿）：不在 Market 中展示，只能在此安装 */
   const developer = h("div", { class: "section developer-section" });

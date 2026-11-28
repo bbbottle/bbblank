@@ -215,6 +215,10 @@ export class SplitWidget extends HTMLElement {
   /** 侧栏位置：right（Elements 的 Styles 窗格）或 left（Sources 的 Navigator）；须在挂载前设置 */
   sidebarSide: "left" | "right" = "right";
   #width = 320;
+  /** 容器宽度小于此值（px）时改为上下布局，侧栏一律在下方（同 Chrome 的「侧栏位置：自动」）；0 表示始终左右布局。须在挂载前设置 */
+  verticalBelow = 0;
+  /** 上下布局时侧栏的高度；0 表示默认（容器高度的 50%） */
+  #height = 0;
   readonly #resizer = h("div", {
     class: "split-resizer",
     onpointerdown: (e: PointerEvent) => this.#drag(e),
@@ -250,6 +254,15 @@ export class SplitWidget extends HTMLElement {
    */
   static readonly MIN_MAIN = 120;
   static readonly MIN_SIDEBAR = 100;
+  static readonly MIN_MAIN_HEIGHT = 60;
+  static readonly MIN_SIDEBAR_HEIGHT = 60;
+
+  /** 上下布局的高度约束：可分配高度扣除分隔手柄（1px），侧栏不少于 60 px，主区至少保留 60 px */
+  #clampHeight(px: number) {
+    if (!this.clientHeight) return px;
+    const h = this.clientHeight - (this.#resizer.hidden ? 0 : this.#resizer.offsetHeight);
+    return Math.max(SplitWidget.MIN_SIDEBAR_HEIGHT, Math.min(h - SplitWidget.MIN_MAIN_HEIGHT, px));
+  }
 
   #clamp(px: number) {
     const w = this.clientWidth;
@@ -259,7 +272,19 @@ export class SplitWidget extends HTMLElement {
   }
 
   #apply() {
-    this.sidebar.style.width = `${this.#clamp(this.#width)}px`;
+    const vertical = this.verticalBelow > 0 && this.clientWidth > 0 && this.clientWidth < this.verticalBelow;
+    if (vertical !== this.classList.contains("vertical")) {
+      this.classList.toggle("vertical", vertical);
+      if (vertical) this.append(this.#resizer, this.sidebar);
+      else if (this.sidebarSide === "left") this.prepend(this.sidebar, this.#resizer);
+    }
+    if (vertical) {
+      this.sidebar.style.width = "";
+      this.sidebar.style.height = `${this.#clampHeight(this.#height || this.clientHeight * 0.5)}px`;
+    } else {
+      this.sidebar.style.height = "";
+      this.sidebar.style.width = `${this.#clamp(this.#width)}px`;
+    }
   }
 
   readonly #observer = new ResizeObserver(() => this.#apply());
@@ -282,16 +307,24 @@ export class SplitWidget extends HTMLElement {
   }
 
   #drag(e: PointerEvent) {
+    const vertical = this.classList.contains("vertical");
     const startX = e.clientX;
+    const startY = e.clientY;
     // 从当前显示的宽度开始（窄屏上显示宽度可能已被收紧，小于记录的宽度）
-    const start = this.sidebar.getBoundingClientRect().width;
-    this.#explicit = true;
+    const rect = this.sidebar.getBoundingClientRect();
+    const start = vertical ? rect.height : rect.width;
+    if (!vertical) this.#explicit = true;
     const sign = this.sidebarSide === "left" ? 1 : -1;
     const target = e.currentTarget as HTMLElement;
     target.setPointerCapture(e.pointerId);
     const move = (ev: PointerEvent) => {
-      this.#width = this.#clamp(start + sign * (ev.clientX - startX));
-      this.sidebar.style.width = `${this.#width}px`;
+      if (vertical) {
+        this.#height = this.#clampHeight(start - (ev.clientY - startY));
+        this.sidebar.style.height = `${this.#height}px`;
+      } else {
+        this.#width = this.#clamp(start + sign * (ev.clientX - startX));
+        this.sidebar.style.width = `${this.#width}px`;
+      }
     };
     const up = () => {
       target.removeEventListener("pointermove", move);

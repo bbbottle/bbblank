@@ -63,6 +63,7 @@ export const marketPanel = (model: DevtoolsModel): PanelView => {
   const details = h("div", { class: "market-details" });
   const split = splitWidget();
   split.sidebarSide = "right";
+  split.verticalBelow = 560;
   split.main.append(grid);
   split.sidebar.append(details);
   split.sidebarShown = false;

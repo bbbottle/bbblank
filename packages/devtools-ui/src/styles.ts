@@ -195,6 +195,10 @@ bbdt-split-widget { flex: auto; display: flex; min-height: 0; }
 .split-main { flex: auto; overflow: auto; min-width: 0; }
 .split-resizer { flex: 0 0 1px; background: var(--sys-color-divider); cursor: ew-resize; position: relative; touch-action: none; z-index: 1; }
 .split-resizer::after { content: ""; position: absolute; inset: 0 -3px; }
+/* 上下布局（SplitWidget.verticalBelow）：侧栏在下，拖动手柄为水平线 */
+bbdt-split-widget.vertical { flex-direction: column; }
+bbdt-split-widget.vertical > .split-resizer { cursor: ns-resize; }
+bbdt-split-widget.vertical > .split-resizer::after { inset: -3px 0; }
 .split-sidebar { flex: none; overflow: auto; background: var(--sys-color-cdt-base-container); }
 
 /* ---------- tree outline ---------- */
@@ -454,12 +458,20 @@ bbdt-data-grid:focus { outline: none; }
 /* ---------- 窄屏：表格保持最小宽度并横向滚动，避免各列被压缩到无法阅读 ---------- */
 @media (max-width: 640px) {
   .data-grid { min-width: 560px; }
+  /* 横向滚动时首列（名称）固定在左侧；单元格需不透明底色，按斑马纹与选中态分别着色 */
+  .data-grid th:first-child, .data-grid td:first-child { position: sticky; left: 0; box-shadow: inset -1px 0 var(--sys-color-divider); }
+  .data-grid th:first-child { z-index: 2; }
+  .data-grid td:first-child { z-index: 1; background-color: var(--sys-color-surface); }
+  .data-grid tbody tr:nth-child(odd):not(.selected) td:first-child { background-color: var(--sys-color-surface1); }
+  .data-grid tbody tr.selected td:first-child { background-color: color-mix(in srgb, var(--sys-color-tonal-container) 45%, var(--sys-color-cdt-base-container)); }
+  bbdt-data-grid:focus-within .data-grid tbody tr.selected td:first-child { background-color: var(--sys-color-tonal-container); }
 }
 
 /* ---------- 触屏：拖动手柄加大可触区域 ---------- */
 @media (pointer: coarse) {
   .resizer { inset: -10px 0 auto 0; height: 20px; }
   .split-resizer::after { inset: 0 -10px; }
+  bbdt-split-widget.vertical > .split-resizer::after { inset: -10px 0; }
   .data-grid-resizer { width: 14px; }
 }
 
