@@ -5,7 +5,7 @@ export const theme = `
     --bb-bg: #ffffff;
     --bb-fg: #222222;
     --bb-muted: #707070;
-    --bb-rule: #e6e6e6;
+    --bb-rule: #cccccc;
     --bb-selection: rgba(0, 0, 0, .08);
     --bb-space: 24px;
     --bb-ease: cubic-bezier(.23, 1, .32, 1);
@@ -17,7 +17,7 @@ export const theme = `
       --bb-bg: #161616;
       --bb-fg: #d4d4d4;
       --bb-muted: #8c8c8c;
-      --bb-rule: #2e2e2e;
+      --bb-rule: #404040;
       --bb-selection: rgba(255, 255, 255, .12);
     }
   }
@@ -27,11 +27,15 @@ export const theme = `
     display: flex; flex-direction: column; }
   .shell ::selection { background: var(--bb-selection); }
   .shell p { text-wrap: pretty; }
+  .shell { text-autospace: normal; }
 
   .shell > header { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 0; }
   .shell > header nav a { margin-right: 1rem; }
   .shell > header:has(> div:empty) { display: none; }
   .shell > main { flex: 1; padding-block-start: calc(var(--bb-space) * 3); }
+  /* 正文：行高 1.75；段距 12px（与首行缩进配合，不再使用 heti 的 12px / 24px） */
+  .shell > main { line-height: 1.75; }
+  .shell > main p { margin-block: 12px; }
   @media (max-width: 640px) {
     .shell > main { padding-block-start: calc(var(--bb-space) * 2); }
   }
@@ -51,7 +55,15 @@ export const theme = `
   .shell > main .bb-posts > article:not(:last-child) > div > :last-child { margin-block-end: 0; }
 
   .shell > footer { padding-block-end: calc(var(--bb-space) * 2); }
-  .shell.heti > footer.heti-fn { border-block-start-color: var(--bb-rule); color: var(--bb-muted); }
+  /* 脚注分隔线：取正文宽度的 1/3（书籍版式），以伪元素绘制，几何位置与原 1px 上边框相同 */
+  .shell.heti > footer.heti-fn { border-block-start: 0; color: var(--bb-muted); }
+  .shell.heti > footer.heti-fn::before {
+    content: "";
+    display: block;
+    inline-size: calc(100% / 3);
+    block-size: 1px;
+    background: var(--bb-rule);
+  }
   /* 与脚注对齐：12px 同 .heti .heti-fn ol 的 margin-block-start，32px 同 .heti ol 的 padding-inline-start；编号位置以 --bb-mark 方块代替 */
   .shell.heti > footer .bb-footer-back { position: relative; margin-block: 12px 0; padding-inline-start: 32px; text-indent: 0; text-align: start; }
   .shell.heti > footer .bb-footer-back::before {
@@ -66,23 +78,30 @@ export const theme = `
   .shell.heti .heti-fn li:target,
   .shell.heti sup:target,
   .shell.heti sup a:target { background-color: var(--bb-selection); }
+  /* 正文中的脚注引用：不加方括号，灰色，左右各 .125em；不参与中西文自动间距（否则上标内再增加约 1.5px）；链接到对应脚注，不画下划线 */
+  .shell.heti > main sup { margin-inline: .125em; color: var(--bb-muted); text-autospace: no-autospace; }
+  .shell.heti > main sup a,
+  .shell.heti > main sup a:hover { background-image: none; padding: 0; }
+  @media (hover: hover) {
+    .shell.heti > main sup a:hover { color: var(--bb-fg); }
+  }
 
   .shell figure > img { max-width: 100%; }
   .shell figcaption { padding: 4px; font-size: smaller; color: var(--bb-muted); }
 
+  /* 链接下划线：以 1px 点、4px 周期的渐变绘制，颜色为当前文字色的 50%（比原生 dotted 下划线更轻）；悬停时为实线 */
+  .shell {
+    --bb-underline-dotted: repeating-linear-gradient(90deg, color-mix(in srgb, currentColor 50%, transparent) 0 1px, transparent 1px 4px);
+    --bb-underline-solid: linear-gradient(color-mix(in srgb, currentColor 50%, transparent), color-mix(in srgb, currentColor 50%, transparent));
+  }
   .shell a,
   .shell.heti a:hover {
     color: inherit;
     border: 0;
-    padding: 0;
     margin: 0;
-    text-decoration-line: underline;
-    text-decoration-style: dotted;
-    text-decoration-thickness: 1px;
-    text-underline-offset: .3em;
-  }
-  @media (hover: hover) {
-    .shell.heti a:hover { text-decoration-style: solid; }
+    padding: 0 0 .1em;
+    text-decoration: none;
+    background: var(--bb-underline-dotted) 0 100% / 100% 1px no-repeat;
   }
 
   /* 脚注中的可交互元素（FootnoteActionTopic）；选择器需高于 heti 的 .heti abbr[title]（cursor: help） */
@@ -91,15 +110,20 @@ export const theme = `
     appearance: none;
     font: inherit;
     color: inherit;
-    background: none;
     border: 0;
-    padding: 0;
     margin: 0;
-    text-decoration: underline dotted 1px;
-    text-underline-offset: .3em;
+    padding: 0 0 .1em;
+    text-decoration: none;
+    background: var(--bb-underline-dotted) 0 100% / 100% 1px no-repeat;
   }
   @media (hover: hover) {
-    .shell.heti > footer [data-action]:hover { text-decoration-style: solid; }
+    .shell.heti a:hover,
+    .shell.heti > footer [data-action]:hover { background-image: var(--bb-underline-solid); }
+  }
+  /* 强制颜色模式会去掉背景图，改回原生下划线 */
+  @media (forced-colors: active) {
+    .shell a,
+    .shell.heti > footer [data-action] { text-decoration: underline; }
   }
 
   .shell :focus-visible { outline: 1px solid currentColor; outline-offset: 2px; }
@@ -142,5 +166,15 @@ export const theme = `
     .shell > main section,
     .shell > footer > * { animation: none; }
     button.bb-square { transition: none; }
+  }
+
+  @media print {
+    :root { --bb-bg: #ffffff; --bb-fg: #000000; --bb-muted: #555555; --bb-rule: #999999; }
+    .shell a,
+    .shell.heti > footer [data-action] { background: none; text-decoration: underline dotted; }
+    .shell > footer:has(.bb-footer-back) { display: none; }
+    .shell > main > *,
+    .shell > main section,
+    .shell > footer > * { animation: none; }
   }
 `;

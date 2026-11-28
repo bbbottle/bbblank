@@ -38,7 +38,7 @@ export const plugins: ReadonlyArray<PluginEntry> = [
   {
     id: ShellPluginId,
     name: "Shell",
-    version: "1.4.1",
+    version: "1.5.0",
     description: "页面骨架、初始化挂载点、站内路由。",
     builtin: true,
     load: () => import("./shell").then((m) => m.shell),
@@ -46,7 +46,7 @@ export const plugins: ReadonlyArray<PluginEntry> = [
   {
     id: ContentPluginId,
     name: "Content",
-    version: "1.2.1",
+    version: "1.2.2",
     description: "按路由渲染信件，提供内容笔记与页面路由登记服务。",
     builtin: true,
     load: () => import("./content").then((m) => m.content),

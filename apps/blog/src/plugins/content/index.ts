@@ -28,10 +28,11 @@ export const content = definePlugin({
     id: ContentPluginId,
     name: "Content",
     // 1.2.0：新增 content.posts 服务
-    version: "1.2.1" as SemVer,
+    version: "1.2.2" as SemVer,
     // FooterNote 服务自 shell 1.1.0 起提供
     // 非 Entry 路由的返回链接自 shell 1.3.0 起由 footer 提供（NotFound 不再自带）
-    dependencies: [{ id: ShellPluginId, range: "^1.3.0" }],
+    // 脚注锚点 FOOTNOTE_ID_PREFIX 自 shell 1.5.0 起提供
+    dependencies: [{ id: ShellPluginId, range: "^1.5.0" }],
     // 提供服务需要在 manifest 中声明（§10.5），否则 register 会抛 PermissionDenied
     services: { provide: [ContentNoteService.key, ContentRoutes.key, ContentPosts.key] },
   },

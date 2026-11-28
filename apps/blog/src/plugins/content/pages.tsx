@@ -6,7 +6,7 @@ import { ContentNoteChangeTopic, SquareClickTopic } from "./api";
 import type { ContentNote, IContentNoteService } from "./api";
 import { annotate, distribute, letterFields } from "./annotate";
 import type { Routes } from "./routes";
-import { ShellClass } from "../shell/api";
+import { FOOTNOTE_ID_PREFIX, ShellClass } from "../shell/api";
 
 export interface PageDeps {
   readonly noteService: IContentNoteService;
@@ -40,7 +40,13 @@ const Annotated = ({
 }) => (
   <>
     {annotate(text, notes).map((s, i) =>
-      s.kind === "text" ? s.text : <sup key={`ref-${s.id}-${i}`}>[{s.label}]</sup>,
+      s.kind === "text" ? s.text : (
+        <sup key={`ref-${s.id}-${i}`}>
+          <a href={`#${FOOTNOTE_ID_PREFIX}${s.label}`} aria-label={`脚注 ${s.label}`}>
+            {s.label}
+          </a>
+        </sup>
+      ),
     )}
   </>
 );

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
-import { FootnoteActionTopic, FooterNoteService, Note, NoteChangeTopic } from "./api";
+import { FOOTNOTE_ID_PREFIX, FootnoteActionTopic, FooterNoteService, Note, NoteChangeTopic } from "./api";
 import { PluginEventsBus } from "@bbblank/sdk";
 import { isTrustedHtml } from "@bbblank/host-dom";
 
@@ -20,16 +20,21 @@ const actionHandlers = (noteId: number, evtBus: PluginEventsBus) => {
   };
 };
 
-export const NoteItem = ({ note, evtBus }: { note: Note; evtBus: PluginEventsBus }) =>
-  isTrustedHtml(note.content) ? (
+export const NoteItem = ({ note, evtBus }: { note: Note; evtBus: PluginEventsBus }) => {
+  const id = note.order === undefined ? undefined : `${FOOTNOTE_ID_PREFIX}${note.order}`;
+  return isTrustedHtml(note.content) ? (
     <li
+      id={id}
       value={note.order}
       dangerouslySetInnerHTML={{ __html: note.content.html }}
       {...actionHandlers(note.id, evtBus)}
     />
   ) : (
-    <li value={note.order}>{note.content}</li>
+    <li id={id} value={note.order}>
+      {note.content}
+    </li>
   );
+};
 
 const byOrder = (a: Note, b: Note) =>
   (a.order ?? Infinity) - (b.order ?? Infinity);

@@ -30,6 +30,9 @@ export const ShellClass = {
   posts: "bb-posts",
 } as const;
 
+/** 脚注锚点：shell 为带 order 的脚注设置 id=`${FOOTNOTE_ID_PREFIX}${order}`，正文引用以 `#${FOOTNOTE_ID_PREFIX}${order}` 链接到它 */
+export const FOOTNOTE_ID_PREFIX = "fn-";
+
 export type Note = Schema.Schema.Type<typeof NoteSchema>;
 
 export interface FooterNoteService {
