@@ -4,6 +4,7 @@
  * 扩展集合取自 chrome-devtools-frontend 的 ui/components/text_editor/config.ts（baseConfiguration、codeFolding），
  * 着色规则取自 ui/components/code_highlighter/CodeHighlighter.ts（token-* 类，颜色见 devtools-ui 的样式），
  * 编辑器主题取自 ui/components/text_editor/theme.ts。来源：chrome-devtools-frontend@1.0.1705227，BSD-3-Clause。
+ * Portions Copyright The Chromium Authors（chrome-devtools-frontend，BSD-3-Clause，许可全文见 ../vendor/LICENSE）。
  */
 import { Compartment, EditorState } from "@codemirror/state";
 import type { Extension } from "@codemirror/state";

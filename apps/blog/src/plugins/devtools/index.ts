@@ -19,7 +19,7 @@ export const devtools = definePlugin({
     id: DevtoolsPluginId,
     name: "DevTools",
     // 1.1.0：新增 devtools.developer 服务
-    version: "1.1.0" as SemVer,
+    version: "1.2.0" as SemVer,
     services: { provide: [DevtoolsPanels.key, DevtoolsDeveloper.key] },
   },
   capabilities: [Dom, PluginManager, Storage],

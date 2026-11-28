@@ -96,6 +96,12 @@ export const createDevtools = (
     ),
     h("label", { class: "settings-row" }, colorInput, seedText),
     h("div", { class: "actions" }, textButton("恢复默认", () => setSeed(DEFAULT_SEED, true))),
+    h(
+      "div",
+      { class: "settings-hint" },
+      "设计 tokens、图标与部分样式取自 chrome-devtools-frontend（BSD-3-Clause）。",
+      h("a", { href: "/licenses.md", target: "_blank", rel: "noopener" }, "第三方许可"),
+    ),
   );
 
   // 设置菜单：点击菜单与齿轮按钮之外的任意位置（含页面本身）或按 Esc 关闭。

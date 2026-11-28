@@ -1,5 +1,7 @@
 import { execFileSync } from "node:child_process";
+import { appendFileSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as viteBuild, defineConfig } from "vite";
 import type { Plugin, Rollup } from "vite";
@@ -82,8 +84,54 @@ const playgroundTypes = (): Plugin => {
   };
 };
 
+/**
+ * 第三方许可声明：build.license 只收录 node_modules 中的依赖；
+ * 从 chrome-devtools-frontend 复制的资源（packages/devtools-ui/vendor）不经 npm，在此追加其 BSD-3-Clause 全文。
+ */
+const vendoredLicenses = (): Plugin => ({
+  name: "bbblank:vendored-licenses",
+  apply: "build",
+  writeBundle(options) {
+    if (!options.dir) return;
+    const bsd = readFileSync(new URL("../../packages/devtools-ui/vendor/LICENSE", import.meta.url), "utf8");
+    appendFileSync(
+      join(options.dir, "licenses.md"),
+      [
+        "",
+        "## chrome-devtools-frontend - 1.0.1705227 (BSD-3-Clause)",
+        "",
+        "devtools 的设计 tokens（design_system_tokens.css）、图标（Images/src）以及参照其样式与编辑器配置改写的代码取自 chrome-devtools-frontend。",
+        "部分图标可能源自 Material Symbols（Apache License 2.0），Apache License 2.0 全文见本文件中 Apache-2.0 依赖条目所附文本。",
+        "",
+        "```",
+        bsd.trim(),
+        "```",
+        "",
+      ].join("\n"),
+    );
+  },
+});
+
+const licenseBannerFirst = (): Plugin => ({
+  name: "bbblank:license-banner-first",
+  apply: "build",
+  writeBundle(options) {
+    if (!options.dir) return;
+    const banner = "/*! Third-party licenses: /licenses.md */";
+    for (const file of readdirSync(join(options.dir, "assets"))) {
+      if (!file.endsWith(".js")) continue;
+      const path = join(options.dir, "assets", file);
+      const code = readFileSync(path, "utf8");
+      if (code.startsWith(banner)) continue;
+      const at = code.indexOf(`${banner}\n`);
+      if (at < 0) continue;
+      writeFileSync(path, `${banner}\n${code.slice(0, at)}${code.slice(at + banner.length + 1)}`);
+    }
+  },
+});
+
 export default defineConfig({
-  plugins: [playgroundEffect(), playgroundTypes()],
+  plugins: [playgroundEffect(), playgroundTypes(), vendoredLicenses(), licenseBannerFirst()],
   define: {
     __BUILD_COMMIT__: JSON.stringify(commit),
     __BUILD_DIRTY__: JSON.stringify(dirty),
@@ -109,12 +157,14 @@ export default defineConfig({
     },
   },
   build: {
+    license: { fileName: "licenses.md" },
     rolldownOptions: {
       treeshake: {
         // @material/material-color-utilities 未声明 sideEffects，缺省会整包打入（devtools 只用到调色板生成）
         moduleSideEffects: (id) => (/[\\/]@material[\\/]material-color-utilities[\\/]/.test(id) ? false : undefined),
       },
       output: {
+        postBanner: "/*! Third-party licenses: /licenses.md */",
         codeSplitting: {
           groups: [
             // 只被 React 插件（shell/content）用到：随这些插件按需加载，不进入启动路径

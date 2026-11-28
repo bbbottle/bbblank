@@ -15,7 +15,7 @@ const icons = readdirSync(join(vendor, "icons"))
 
 const out = [
   "// 由 scripts/gen-assets.mjs 从 vendor/ 生成，请勿手改。",
-  "// 来源：chrome-devtools-frontend（BSD-3-Clause，见 vendor/LICENSE）。",
+  "// 来源：chrome-devtools-frontend，Copyright The Chromium Authors，BSD-3-Clause（许可全文见 vendor/LICENSE）。",
   "",
   `export const designTokens = ${JSON.stringify(readFileSync(join(vendor, "design_system_tokens.css"), "utf8"))};`,
   "",

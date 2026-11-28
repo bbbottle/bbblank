@@ -86,7 +86,7 @@ export const plugins: ReadonlyArray<PluginEntry> = [
   {
     id: DevtoolsPluginId,
     name: "DevTools",
-    version: "1.1.0",
+    version: "1.2.0",
     description: "bbki.ng 开发者工具。",
     builtin: false,
     load: () => import("./devtools").then((m) => m.devtools),

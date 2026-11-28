@@ -1,6 +1,7 @@
 /**
  * devtools 样式：颜色、尺寸、圆角取自 vendor/design_system_tokens.css（Chrome DevTools 设计 tokens），
  * 布局数值参照 chrome-devtools-frontend 的 tabbedPane.css / toolbar.css / dataGrid.css（浅色主题）。
+ * Portions Copyright The Chromium Authors（chrome-devtools-frontend，BSD-3-Clause，许可全文见 ../vendor/LICENSE）。
  */
 import { designTokens as tokens } from "./generated/assets.js";
 
@@ -330,6 +331,7 @@ bbdt-data-grid:focus { outline: none; }
 .settings-popover[hidden] { display: none; }
 .settings-title { padding: 0 var(--sys-size-6); font-weight: var(--ref-typeface-weight-medium); }
 .settings-hint { padding: var(--sys-size-3) var(--sys-size-6); color: var(--sys-color-on-surface-subtle); }
+.settings-hint a { margin-left: var(--sys-size-3); color: var(--sys-color-primary); }
 .settings-row { display: flex; align-items: center; gap: var(--sys-size-4); padding: var(--sys-size-3) var(--sys-size-6); }
 /* 颜色控件：清除各平台的默认外观（iOS Safari 的 swatch 为圆形，在 32×20 的控件中会被拉伸为椭圆），
    外框与内部 swatch 均显式设为小圆角矩形 */
