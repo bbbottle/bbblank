@@ -11,15 +11,17 @@ type RenderedPost = Omit<Post, "content"> & { readonly content: TrustedHtml };
 
 type PostsState =
   | { readonly kind: "loading" }
-  | { readonly kind: "error"; readonly message: string }
+  | { readonly kind: "error" }
   | { readonly kind: "ready"; readonly posts: ReadonlyArray<RenderedPost> };
 
 const Blog = ({
   html,
   posts,
+  onError,
 }: {
   readonly html: HtmlFacade;
   readonly posts: PostsService;
+  readonly onError: (e: unknown) => void;
 }) => {
   const [state, setState] = useState<PostsState>({ kind: "loading" });
 
@@ -32,12 +34,13 @@ const Blog = ({
           posts: posts.map((p) => ({ ...p, content: html.trust(p.content) })),
         }),
       (e: unknown) => {
-        if (!ctrl.signal.aborted)
-          setState({ kind: "error", message: String(e) });
+        if (ctrl.signal.aborted) return;
+        onError(e);
+        setState({ kind: "error" });
       },
     );
     return () => ctrl.abort();
-  }, [html, posts]);
+  }, [html, posts, onError]);
 
   if (state.kind === "loading")
     return (
@@ -47,7 +50,7 @@ const Blog = ({
         aria-label="加载中"
       />
     );
-  if (state.kind === "error") return <p>文章加载失败：{state.message}</p>;
+  if (state.kind === "error") return <p>文章加载失败，请稍后刷新。</p>;
   return (
     <section className={ShellClass.posts}>
       {state.posts.map((p) => (
@@ -64,8 +67,9 @@ export const renderBlog = (
   host: HTMLElement,
   html: HtmlFacade,
   posts: PostsService,
+  onError: (e: unknown) => void,
 ) => {
   const root = createRoot(host);
-  root.render(<Blog html={html} posts={posts} />);
+  root.render(<Blog html={html} posts={posts} onError={onError} />);
   return () => root.unmount();
 };

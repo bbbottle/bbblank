@@ -3,7 +3,7 @@
  * 并经 content.routes 提供该页面（内容挂入 routeSlot），文章经 content.posts 读取。停用 / 卸载时笔记与路由一并移除；若正处于该页面，content 导航回 /。
  * 笔记含链接、页面含远程 HTML，均需经 Html capability（write）生成 TrustedHtml。
  */
-import { definePlugin } from "@bbblank/sdk";
+import { LogTopic, definePlugin } from "@bbblank/sdk";
 import type { SemVer } from "@bbblank/sdk";
 import { Dom, Html } from "@bbblank/host-dom";
 import { ContentNoteService, ContentPluginId, ContentPosts, ContentRoutes, routeSlot } from "../content/api";
@@ -17,7 +17,7 @@ export const littleCrow = definePlugin({
   manifest: {
     id: LittleCrowPluginId,
     name: "Little Crow",
-    version: "1.2.0" as SemVer,
+    version: "1.2.1" as SemVer,
     // content.posts 自 content 1.2.0 起提供
     dependencies: [{ id: ContentPluginId, range: "^1.3.0" }],
   },
@@ -31,7 +31,9 @@ export const littleCrow = definePlugin({
     ]);
 
     api.lifecycle.addCleanup(routes.register(LITTLE_CROW_ROUTE, { title: "小乌鸦合集" }));
-    dom.mount(routeSlot(LITTLE_CROW_ROUTE), (host) => renderLittleCrow(host, html, posts));
+    const logError = (e: unknown) =>
+      api.events.emit(LogTopic, { level: "error", message: `小乌鸦合集加载失败：${String(e)}` });
+    dom.mount(routeSlot(LITTLE_CROW_ROUTE), (host) => renderLittleCrow(host, html, posts, logError));
 
     const note: Readonly<Note> = {
       id: NOTE_ID,

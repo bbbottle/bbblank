@@ -3,7 +3,7 @@
  * 并为正文添加指向 /blog 的笔记。停用/卸载时笔记与路由一并移除；若正处于 /blog，content 导航回 /。
  * 笔记含链接、页面含远程 HTML，均需经 Html capability（write）生成 TrustedHtml。
  */
-import { definePlugin } from "@bbblank/sdk";
+import { LogTopic, definePlugin } from "@bbblank/sdk";
 import type { SemVer } from "@bbblank/sdk";
 import { Dom, Html } from "@bbblank/host-dom";
 import {
@@ -23,7 +23,7 @@ export const blog = definePlugin({
   manifest: {
     id: BlogPluginId,
     name: "Blog",
-    version: "1.3.0" as SemVer,
+    version: "1.3.1" as SemVer,
     // content.posts 自 content 1.2.0 起提供
     dependencies: [{ id: ContentPluginId, range: "^1.3.0" }],
   },
@@ -37,7 +37,9 @@ export const blog = definePlugin({
     ]);
 
     api.lifecycle.addCleanup(routes.register(ROUTE, { title: "博客" }));
-    dom.mount(routeSlot(ROUTE), (host) => renderBlog(host, html, posts));
+    const logError = (e: unknown) =>
+      api.events.emit(LogTopic, { level: "error", message: `博客文章加载失败：${String(e)}` });
+    dom.mount(routeSlot(ROUTE), (host) => renderBlog(host, html, posts, logError));
 
     const note: Readonly<Note> = {
       id: 2,

@@ -28,7 +28,7 @@ export const content = definePlugin({
     id: ContentPluginId,
     name: "Content",
     // 1.2.0：新增 content.posts 服务
-    version: "1.3.0" as SemVer,
+    version: "1.3.1" as SemVer,
     // FooterNote 服务自 shell 1.1.0 起提供
     // 非 Entry 路由的返回链接自 shell 1.3.0 起由 footer 提供（NotFound 不再自带）
     // 脚注锚点 FOOTNOTE_ID_PREFIX 自 shell 1.5.0 起提供

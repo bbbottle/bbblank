@@ -75,6 +75,7 @@ export type Post = Schema.Schema.Type<typeof PostSchema>;
 /**
  * 文章读取服务：同一页面会话内共享一次请求结果（失败不缓存）。
  * signal 只取消调用方自己的等待，不中断其他调用方共享的请求。
+ * 失败时 reject 为 ServiceFailure（网络、HTTP 状态或响应解码失败）；signal 取消时以 signal.reason（AbortError）reject。两者都不会使 content 被重启。
  */
 export interface PostsService {
   /** 全部文章，按 createdAt 降序 */

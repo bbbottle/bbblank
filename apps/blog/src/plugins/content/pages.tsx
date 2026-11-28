@@ -128,8 +128,6 @@ const RouteHost = ({ path, provide }: { readonly path: string; readonly provide:
 /** content 自身的页面；其余路径由外部插件经 content.routes 登记 */
 const PAGES: ReadonlyMap<string, (deps: PageDeps) => ReactElement> = new Map([
   ["/", (deps: PageDeps) => <Entry {...deps} />],
-  ["/notes", () => <div>Hi.</div>],
-  ["/photos", () => <div>Hi.</div>],
 ]);
 
 export const builtinPaths: ReadonlySet<string> = new Set(PAGES.keys());

@@ -3,6 +3,7 @@
  * 同一页面会话内共享一次成功的请求结果；请求失败时移出缓存，下次调用重新请求。
  */
 import { Schema } from "effect";
+import { ServiceFailure } from "@bbblank/sdk";
 import { PostSchema } from "./api";
 import type { Post, PostsService } from "./api";
 
@@ -11,9 +12,14 @@ const POSTS_URL = "https://cf.bbki.ng/posts";
 const decodeResponse = Schema.decodeUnknownSync(Schema.Struct({ data: Schema.Array(PostSchema) }));
 
 const load = async (): Promise<ReadonlyArray<Post>> => {
-  const res = await fetch(POSTS_URL);
-  if (!res.ok) throw new Error(`GET ${POSTS_URL} ${res.status}`);
-  return [...decodeResponse(await res.json()).data].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  try {
+    const res = await fetch(POSTS_URL);
+    if (!res.ok) throw new Error(`GET ${POSTS_URL} ${res.status}`);
+    return [...decodeResponse(await res.json()).data].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  } catch (cause) {
+    // 远程失败（网络、HTTP 状态、响应解码）是预期失败，交给调用方处理，不归因给 content
+    throw new ServiceFailure({ service: "content.posts", message: `文章读取失败：${String(cause)}`, cause });
+  }
 };
 
 /** 调用方取消时只放弃自己的等待：共享的请求继续进行，供其他调用方使用 */
