@@ -61,6 +61,10 @@ export const theme = `
   .shell:has(> main [aria-busy="true"]) > footer { visibility: hidden; }
   /* 脚注：沿用 heti 的黑体，12px / 20px、灰色，与正文（16px / 28px）形成主次；文字缩进 --bb-fn-indent（22px，heti 缺省为 32px） */
   .shell.heti > footer.heti-fn { border-block-start: 0; color: var(--bb-muted); font-size: 12px; line-height: 20px; }
+  /* 触屏：脚注恢复 heti 的 14px / 24px，保证链接与按钮便于点按 */
+  @media (pointer: coarse) {
+    .shell.heti > footer.heti-fn { font-size: 14px; line-height: 24px; }
+  }
   .shell.heti > footer ol { padding-inline-start: var(--bb-fn-indent); }
   /* 脚注分隔线：取正文宽度的 1/3（书籍版式），以伪元素绘制，几何位置与原 1px 上边框相同 */
   .shell.heti > footer.heti-fn::before {
