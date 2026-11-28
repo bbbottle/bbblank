@@ -47,6 +47,7 @@ const Blog = ({
       <span
         className={`${ShellClass.square} ${ShellClass.blink}`}
         role="status"
+        aria-busy="true"
         aria-label="加载中"
       />
     );

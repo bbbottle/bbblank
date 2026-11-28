@@ -23,7 +23,10 @@ export const ShellSlots = {
   footer: defineSlot("footer"),
 } as const;
 
-/** shell 样式（./theme）提供的全站类名；页面插件经此引用，不各自定义方块样式 */
+/**
+ * shell 样式（./theme）提供的全站类名；页面插件经此引用，不各自定义方块样式。
+ * 页面内容加载中时，请在加载占位元素上标记 aria-busy="true"：shell 在此期间隐藏 footer，内容就绪后一同显示。
+ */
 export const ShellClass = {
   square: "bb-square",
   blink: "blink",

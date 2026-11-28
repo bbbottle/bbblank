@@ -57,6 +57,8 @@ export const theme = `
   .shell > main .bb-posts > article:not(:last-child) > div > :last-child { margin-block-end: 0; }
 
   .shell > footer { --bb-fn-indent: 22px; padding-block-end: calc(var(--bb-space) * 2); }
+  /* 页面内容加载中（main 内存在 aria-busy="true" 的元素）时隐藏 footer：避免 footer 先贴在视口底部、内容就绪后又被推开 */
+  .shell:has(> main [aria-busy="true"]) > footer { visibility: hidden; }
   /* 脚注：沿用 heti 的黑体，12px / 20px、灰色，与正文（16px / 28px）形成主次；文字缩进 --bb-fn-indent（22px，heti 缺省为 32px） */
   .shell.heti > footer.heti-fn { border-block-start: 0; color: var(--bb-muted); font-size: 12px; line-height: 20px; }
   .shell.heti > footer ol { padding-inline-start: var(--bb-fn-indent); }

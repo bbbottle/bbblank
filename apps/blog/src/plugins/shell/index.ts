@@ -22,7 +22,7 @@ export const shell = definePlugin({
   manifest: {
     id: ShellPluginId,
     name: "Shell",
-    version: "1.6.1" as SemVer,
+    version: "1.6.2" as SemVer,
     services: { provide: [FooterNote.key] },
   },
   capabilities: [Dom, Router],

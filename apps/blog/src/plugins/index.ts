@@ -38,7 +38,7 @@ export const plugins: ReadonlyArray<PluginEntry> = [
   {
     id: ShellPluginId,
     name: "Shell",
-    version: "1.6.1",
+    version: "1.6.2",
     description: "页面骨架、初始化挂载点、站内路由。",
     builtin: true,
     load: () => import("./shell").then((m) => m.shell),
@@ -70,7 +70,7 @@ export const plugins: ReadonlyArray<PluginEntry> = [
   {
     id: BlogPluginId,
     name: "Blog",
-    version: "1.3.1",
+    version: "1.3.2",
     description: "组装的文字。",
     builtin: false,
     load: () => import("./blog").then((m) => m.blog),
@@ -78,7 +78,7 @@ export const plugins: ReadonlyArray<PluginEntry> = [
   {
     id: LittleCrowPluginId,
     name: "Little Crow",
-    version: "1.2.1",
+    version: "1.2.2",
     description: "小乌鸦合集（语录）。",
     builtin: false,
     load: () => import("./little-crow").then((m) => m.littleCrow),
